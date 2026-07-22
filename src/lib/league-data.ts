@@ -70,9 +70,47 @@ export async function getKuzeyMatches(): Promise<Match[]> {
   return live ?? staticMatches.filter((m) => m.league === "Kuzey Ligi");
 }
 
-export async function getGuneyMatches(): Promise<Match[]> {
-  const live = await fetchLeagueMatches(GUNEY.tournamentId, GUNEY.seasonId, "Güney Ligi", 8);
-  return live ?? staticMatches.filter((m) => m.league === "Güney Ligi");
+// Güney Ligi, Grup A ve Grup B olmak üzere iki gruba ayrılır. Sofascore
+// tarafındaki tüm Güney maçları tek bir tournamentId altında toplandığı için
+// (get-standings'te olduğu gibi) her maç etkinliğindeki `tournament.name`
+// alanına bakarak hangi gruba ait olduğunu belirliyoruz. API grup bilgisi
+// döndürmezse (veya erişilemezse) statik/ayrıştırılamamış maçlar "ungrouped"
+// içinde döner ve sayfa bunu tek bir "Güney Ligi" bölümü olarak gösterir.
+export type GuneyMatchGroups = {
+  groupA: Match[];
+  groupB: Match[];
+  ungrouped: Match[];
+};
+
+export async function getGuneyMatchGroups(): Promise<GuneyMatchGroups> {
+  const events = await getLastMatches(GUNEY.tournamentId, GUNEY.seasonId);
+  if (!events || events.length === 0) {
+    return {
+      groupA: [],
+      groupB: [],
+      ungrouped: staticMatches.filter((m) => m.league === "Güney Ligi"),
+    };
+  }
+
+  const eventKey = (e: SofaEvent) => `${e.slug}-${e.startTimestamp}`;
+  const groupAEvents = events.filter((e) => e.tournament?.name?.includes("Group A"));
+  const groupBEvents = events.filter((e) => e.tournament?.name?.includes("Group B"));
+  const groupedKeys = new Set([...groupAEvents, ...groupBEvents].map(eventKey));
+  const restEvents = events.filter((e) => !groupedKeys.has(eventKey(e)));
+
+  const toMatches = (list: SofaEvent[]) =>
+    [...list]
+      .sort((a, b) => b.startTimestamp - a.startTimestamp)
+      .slice(0, 8)
+      .map((e, idx) => mapEvent(e, "Güney Ligi", idx));
+
+  const hasGroupInfo = groupAEvents.length > 0 || groupBEvents.length > 0;
+
+  return {
+    groupA: toMatches(groupAEvents),
+    groupB: toMatches(groupBEvents),
+    ungrouped: hasGroupInfo ? [] : toMatches(restEvents),
+  };
 }
 
 function mapTopPlayers(entries: TopPlayerEntry[], key: "goals" | "assists"): StatLeader[] {

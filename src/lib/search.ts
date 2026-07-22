@@ -25,9 +25,9 @@ export function slugify(value: string): string {
 const PAGES: SearchResult[] = [
   { type: "sayfa", label: "Ana Sayfa", href: "/" },
   { type: "sayfa", label: "Puan Durumu", href: "/puan-durumu" },
-  { type: "sayfa", label: "Maç Sonuçları", href: "/mac-sonuclari" },
   { type: "sayfa", label: "Maçlar", href: "/maclar" },
   { type: "sayfa", label: "Takımlar", href: "/takimlar" },
+  { type: "sayfa", label: "Duyurular", href: "/duyurular" },
   { type: "sayfa", label: "Hakkında", href: "/hakkinda" },
 ];
 
@@ -42,8 +42,8 @@ function buildIndex(): SearchResult[] {
   }));
 
   // Not: Maçlar artık canlı API'den geldiği için (dinamik id'ler), maç
-  // sonuçları arama dizinine dahil edilmiyor - "Maç Sonuçları" sayfa
-  // bağlantısı üzerinden erişilebilir.
+  // sonuçları arama dizinine dahil edilmiyor - "Puan Durumu" sayfası
+  // üzerinden erişilebilir.
 
   const playerResults: SearchResult[] = [
     ...golKrallari.map((p) => ({

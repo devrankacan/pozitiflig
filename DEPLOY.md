@@ -137,8 +137,8 @@ kurup yukarıdaki komutu tekrar çalıştır.
 
 ## 7) Sofascore API anahtarını ekle (canlı maç sonuçları/istatistikler için)
 
-Puan durumu widget'ları bu adım olmadan da çalışır. Ama Maç Sonuçları
-sayfasındaki canlı veriler ve Ana Sayfa'daki gol/asist krallığı ile
+Puan durumu widget'ları bu adım olmadan da çalışır. Ama Puan Durumu
+sayfasındaki maç sonuçları bölümü ve Ana Sayfa'daki gol/asist krallığı ile
 Play-Off takvimi için RapidAPI'deki Sofascore anahtarın gerekiyor.
 
 Anahtar **repoya asla girmez** — sadece VPS'te, git'in hiç görmediği
@@ -193,6 +193,46 @@ gereği tamamen yok sayar (kural `sudo -l` çıktısında görünse bile fiilen
 uygulanmaz) — bu durumda `sudo systemctl restart` yine parola sorar.
 `visudo -c` çıktısında ilgili dosya için "bad permissions" uyarısı
 olmadığından emin ol.
+
+## 9) Duyurular sayfası ve admin paneli için kalıcı veri + şifre
+
+Duyurular (`/duyurular`) bir JSON dosyasında saklanır ve admin paneli
+(`/admin`) üzerinden yönetilir. Bu dosyanın, her güncellemede tamamen
+silinip yeniden oluşturulan `current/` klasörünün **dışında** bir yerde
+durması gerekir — yoksa her deploy'da duyurular kaybolur.
+
+Kalıcı bir veri klasörü oluştur (bu, `current/`'ın kardeşi, `deploy.sh`
+tarafından asla dokunulmaz):
+
+```bash
+sudo -u pozitiflig mkdir -p /var/www/pozitiflig/data
+```
+
+Sonra `/etc/pozitiflig.env` dosyana admin şifresini, oturum imzalama
+anahtarını ve duyuru dosyasının yolunu ekle (7. adımda oluşturduğun
+dosyayı güncelliyorsun, üzerine yazmadan mevcut satırları koruyarak):
+
+```bash
+sudo tee -a /etc/pozitiflig.env > /dev/null << 'EOF'
+ADMIN_PASSWORD=guclu_bir_sifre_sec
+ADMIN_SESSION_SECRET=rastgele_uzun_bir_metin
+ANNOUNCEMENTS_FILE=/var/www/pozitiflig/data/announcements.json
+EOF
+sudo chmod 640 /etc/pozitiflig.env
+sudo systemctl restart pozitiflig
+```
+
+`ADMIN_SESSION_SECRET` için rastgele bir değer üretmek istersen:
+
+```bash
+openssl rand -hex 32
+```
+
+Bu üç değişken ayarlanmadan `/admin` girişi çalışmaz (şifre her zaman
+"yanlış" görünür), ama site geri kalanı etkilenmez. `/var/www/pozitiflig/data`
+klasörü `ProtectSystem=full`/`ProtectHome=true` kısıtlamalarının dışındadır
+(bunlar `/etc`, `/usr`, `/home` gibi yerleri salt-okunur yapar; `/var`'a
+dokunmaz), bu yüzden servis dosyasında ekstra bir izin ayarına gerek yoktur.
 
 ## Özet: izolasyon garantileri
 

@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# yerel duyuru verisi (üretimde ANNOUNCEMENTS_FILE ile ayrı bir konum kullanılır)
+/.data
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

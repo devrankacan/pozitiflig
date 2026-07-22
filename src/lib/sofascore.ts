@@ -89,6 +89,7 @@ export type SofaEvent = {
   startTimestamp: number;
   status: { code: number; description: string; type: string };
   roundInfo?: { round: number };
+  tournament?: { name: string };
 };
 
 type EventsResponse = { events: SofaEvent[] };

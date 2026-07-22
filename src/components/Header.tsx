@@ -10,9 +10,9 @@ import SearchBox from "@/components/SearchBox";
 const NAV_LINKS = [
   { href: "/", label: "Ana Sayfa" },
   { href: "/puan-durumu", label: "Puan Durumu" },
-  { href: "/mac-sonuclari", label: "Maç Sonuçları" },
   { href: "/maclar", label: "Maçlar" },
   { href: "/takimlar", label: "Takımlar" },
+  { href: "/duyurular", label: "Duyurular" },
   { href: "/hakkinda", label: "Hakkında" },
 ];
 

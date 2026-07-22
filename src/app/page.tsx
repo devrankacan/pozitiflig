@@ -83,10 +83,10 @@ export default async function Home() {
               Puan Durumunu Gör
             </Link>
             <Link
-              href="/mac-sonuclari"
+              href="/maclar"
               className="rounded-full border border-border px-6 py-3 text-sm font-semibold transition-colors hover:bg-surface-2"
             >
-              Maç Sonuçları
+              Maçları İzle
             </Link>
           </div>
         </div>
