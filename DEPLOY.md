@@ -156,7 +156,16 @@ yapılıyor):
 ```bash
 echo 'pozitiflig ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart pozitiflig, /bin/systemctl restart pozitiflig' \
   | sudo tee /etc/sudoers.d/pozitiflig
+sudo chmod 0440 /etc/sudoers.d/pozitiflig
+sudo visudo -c
 ```
+
+`chmod 0440` adımı önemli: `tee` dosyayı varsayılan izinlerle (0644) oluşturur ve
+sudo, `/etc/sudoers.d/` altında 0440'tan gevşek izinli dosyaları güvenlik
+gereği tamamen yok sayar (kural `sudo -l` çıktısında görünse bile fiilen
+uygulanmaz) — bu durumda `sudo systemctl restart` yine parola sorar.
+`visudo -c` çıktısında ilgili dosya için "bad permissions" uyarısı
+olmadığından emin ol.
 
 ## Özet: izolasyon garantileri
 
