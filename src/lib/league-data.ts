@@ -24,7 +24,19 @@ import {
   type SofaEvent,
   type TopPlayerEntry,
   type CupTree,
+  type StandingsGroup,
+  type StandingsRow,
 } from "@/lib/sofascore";
+
+// Güney Ligi'nin Grup A / Grup B ayrımı standings uç noktasında
+// `tournament.name` alanına bakılarak belirlenir (aynı yöntem maç
+// sonuçlarında da kullanılıyor). Kuzey Ligi tek grup olduğu için her
+// zaman "Kuzey Ligi" etiketiyle döner.
+function guneyGroupLabel(group: StandingsGroup): string {
+  if (group.tournament.name.includes("Group A")) return "Güney Ligi — Grup A";
+  if (group.tournament.name.includes("Group B")) return "Güney Ligi — Grup B";
+  return "Güney Ligi";
+}
 
 function formatDate(timestampSeconds: number): string {
   return new Date(timestampSeconds * 1000).toLocaleDateString("tr-TR", {
@@ -192,12 +204,19 @@ export async function getGuneyPlayoff(): Promise<PlayoffMatch[] | null> {
 
 export type TeamSummary = { id?: number; name: string };
 
-async function getAllStandingsTeams(): Promise<TeamSummary[] | null> {
+async function fetchAllStandingsGroups(): Promise<{
+  kuzey: StandingsGroup[] | null;
+  guney: StandingsGroup[] | null;
+}> {
   const [kuzey, guney] = await Promise.all([
     getStandings(KUZEY.tournamentId, KUZEY.seasonId),
     getStandings(GUNEY.tournamentId, GUNEY.seasonId),
   ]);
+  return { kuzey, guney };
+}
 
+async function getAllStandingsTeams(): Promise<TeamSummary[] | null> {
+  const { kuzey, guney } = await fetchAllStandingsGroups();
   const groups = [...(kuzey ?? []), ...(guney ?? [])];
   if (groups.length === 0) return null;
 
@@ -208,6 +227,58 @@ async function getAllStandingsTeams(): Promise<TeamSummary[] | null> {
     }
   }
   return [...byName.values()];
+}
+
+// Puan Durumu sayfasındaki tabloları besler - Kuzey Ligi ve Güney
+// Ligi'nin Grup A/Grup B'si ayrı ayrı, doğru etiketlerle döner. API
+// erişilemezse null döner; sayfa bu durumda eski Sofascore iframe
+// widget'larına düşer.
+export type StandingsSection = { title: string; rows: StandingsRow[] };
+
+export async function getStandingsSections(): Promise<StandingsSection[] | null> {
+  const { kuzey, guney } = await fetchAllStandingsGroups();
+  if ((!kuzey || kuzey.length === 0) && (!guney || guney.length === 0)) return null;
+
+  const sections: StandingsSection[] = [];
+  for (const group of kuzey ?? []) {
+    sections.push({
+      title: "Kuzey Ligi",
+      rows: [...group.rows].sort((a, b) => a.position - b.position),
+    });
+  }
+  for (const group of guney ?? []) {
+    sections.push({
+      title: guneyGroupLabel(group),
+      rows: [...group.rows].sort((a, b) => a.position - b.position),
+    });
+  }
+  return sections;
+}
+
+// Takımlar sayfasını besler - takımlar Kuzey Ligi / Güney Ligi Grup A /
+// Güney Ligi Grup B olarak ayrı bölümlerde döner. API erişilemezse
+// statik takım listesi tek bir bölüm olarak döner.
+export type TeamGroup = { title: string; teams: TeamSummary[] };
+
+export async function getLiveTeamGroups(): Promise<TeamGroup[]> {
+  const { kuzey, guney } = await fetchAllStandingsGroups();
+  if ((!kuzey || kuzey.length === 0) && (!guney || guney.length === 0)) {
+    return [{ title: "Takımlar", teams: staticTeams.map((name) => ({ name })) }];
+  }
+
+  const toTeams = (group: StandingsGroup): TeamSummary[] =>
+    [...group.rows]
+      .sort((a, b) => a.team.name.localeCompare(b.team.name, "tr"))
+      .map((r) => ({ id: r.team.id, name: r.team.name }));
+
+  const groups: TeamGroup[] = [];
+  for (const group of kuzey ?? []) {
+    groups.push({ title: "Kuzey Ligi", teams: toTeams(group) });
+  }
+  for (const group of guney ?? []) {
+    groups.push({ title: guneyGroupLabel(group), teams: toTeams(group) });
+  }
+  return groups;
 }
 
 // Statik/kürüne edilmiş verilerdeki (Şampiyonlar gibi) takım isimlerini
@@ -233,10 +304,3 @@ export async function getChampionsWithLogos(): Promise<Champion[]> {
   }));
 }
 
-export async function getLiveTeams(): Promise<TeamSummary[]> {
-  const teams = await getAllStandingsTeams();
-  if (teams && teams.length > 0) {
-    return teams.sort((a, b) => a.name.localeCompare(b.name, "tr"));
-  }
-  return staticTeams.map((name) => ({ name }));
-}

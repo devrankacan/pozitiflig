@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SectionHeading from "@/components/SectionHeading";
 import StandingsWidget from "@/components/StandingsWidget";
+import StandingsTable from "@/components/StandingsTable";
 import MatchResultCard from "@/components/MatchResultCard";
 import { standingsWidgets } from "@/data/league";
 import type { Match, PlayoffMatch } from "@/data/league";
@@ -9,6 +10,7 @@ import {
   getGuneyMatchGroups,
   getKuzeyPlayoff,
   getGuneyPlayoff,
+  getStandingsSections,
 } from "@/lib/league-data";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +37,14 @@ function playoffToMatch(p: PlayoffMatch, league: string, idx: number): Match {
 }
 
 export default async function PuanDurumuPage() {
-  const [kuzeyMatches, guneyGroups, kuzeyPlayoff, guneyPlayoff] = await Promise.all([
-    getKuzeyMatches(),
-    getGuneyMatchGroups(),
-    getKuzeyPlayoff(),
-    getGuneyPlayoff(),
-  ]);
+  const [kuzeyMatches, guneyGroups, kuzeyPlayoff, guneyPlayoff, standingsSections] =
+    await Promise.all([
+      getKuzeyMatches(),
+      getGuneyMatchGroups(),
+      getKuzeyPlayoff(),
+      getGuneyPlayoff(),
+      getStandingsSections(),
+    ]);
 
   const groups: { title: string; matches: Match[] }[] = [
     { title: "Kuzey Ligi", matches: kuzeyMatches },
@@ -67,11 +71,22 @@ export default async function PuanDurumuPage() {
         title="Puan Durumu"
         description="Puan durumları Sofascore üzerinden anlık olarak güncellenir."
       />
-      <div className="grid gap-6 lg:grid-cols-2">
-        {standingsWidgets.map((w) => (
-          <StandingsWidget key={w.id} {...w} />
-        ))}
-      </div>
+      {standingsSections ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {standingsSections.map((section) => (
+            <div key={section.title}>
+              <h3 className="mb-3 text-lg font-bold text-accent">{section.title}</h3>
+              <StandingsTable rows={section.rows} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {standingsWidgets.map((w) => (
+            <StandingsWidget key={w.id} {...w} />
+          ))}
+        </div>
+      )}
 
       <div className="mt-14">
         <SectionHeading
