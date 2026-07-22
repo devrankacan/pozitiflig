@@ -102,6 +102,18 @@ export async function getAnnouncement(id: string): Promise<Announcement | null> 
   return items.find((a) => a.id === id) ?? null;
 }
 
+// Duyuru linklerinin (örn. /duyurular/3) düzgün ve sıralı olması için
+// karışık UUID yerine, mevcut en yüksek sayısal id'nin bir fazlası
+// kullanılır. Eskiden UUID ile oluşturulmuş kayıtlar varsa (sayısal
+// olmadıkları için) hesaplamayı etkilemez, sorunsuz bir arada durur.
+function nextAnnouncementId(items: Announcement[]): string {
+  const maxId = items.reduce((max, item) => {
+    const n = Number(item.id);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  return String(maxId + 1);
+}
+
 export async function createAnnouncement(
   title: string,
   body: string,
@@ -109,7 +121,7 @@ export async function createAnnouncement(
 ): Promise<Announcement> {
   const items = await readAll();
   const announcement: Announcement = {
-    id: randomUUID(),
+    id: nextAnnouncementId(items),
     title: title.trim(),
     body: body.trim(),
     createdAt: new Date().toISOString(),
