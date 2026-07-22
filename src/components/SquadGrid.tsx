@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { SquadPlayer } from "@/lib/sofascore";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import PlayerModal, { type ModalPlayer } from "@/components/PlayerModal";
 
 const POSITION_LABELS: Record<string, string> = {
@@ -63,9 +64,12 @@ export default function SquadGrid({
                     }
                     className="pl-card flex items-center gap-3 p-4 text-left transition-colors hover:border-accent"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-bold text-accent">
-                      {p.jerseyNumber || "-"}
-                    </span>
+                    <div className="relative shrink-0">
+                      <PlayerAvatar playerId={p.id} name={p.name} size={44} />
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-background ring-2 ring-surface">
+                        {p.jerseyNumber || "-"}
+                      </span>
+                    </div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{p.name}</p>
                       {age && <p className="text-xs text-muted">{age} yaşında</p>}
