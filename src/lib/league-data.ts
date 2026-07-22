@@ -79,6 +79,7 @@ function mapTopPlayers(entries: TopPlayerEntry[], key: "goals" | "assists"): Sta
   return entries
     .map((e) => ({
       name: e.player.name,
+      playerId: e.player.id,
       value: e.statistics[key] ?? 0,
     }))
     .filter((l) => l.value > 0)

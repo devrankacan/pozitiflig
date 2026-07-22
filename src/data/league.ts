@@ -39,6 +39,7 @@ export const champions: Champion[] = [
 export type StatLeader = {
   name: string;
   team?: string;
+  playerId?: number;
   value: number;
 };
 

@@ -204,26 +204,25 @@ export async function getSquad(teamId: number): Promise<Squad | null> {
   return { teamName, players };
 }
 
-// Takım logoları neredeyse hiç değişmediği için ayrı ve çok daha uzun bir
-// önbellek süresi kullanılır (varsayılan 30 gün) - kotayı gereksiz yormaz.
-type LogoCacheEntry = { bytes: ArrayBuffer; contentType: string; fetchedAt: number };
-const logoCache = new Map<number, LogoCacheEntry>();
-const LOGO_REVALIDATE_MS =
+// Görseller (takım/oyuncu logosu) neredeyse hiç değişmediği için ayrı ve
+// çok daha uzun bir önbellek süresi kullanılır (varsayılan 30 gün) - kotayı
+// gereksiz yormaz.
+type ImageEntry = { bytes: ArrayBuffer; contentType: string; fetchedAt: number };
+const imageCache = new Map<string, ImageEntry>();
+const IMAGE_REVALIDATE_MS =
   Number(process.env.SOFASCORE_LOGO_REVALIDATE_SECONDS ?? 2592000) * 1000;
 
-export async function getTeamLogo(
-  teamId: number,
-): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+async function sofaGetImage(cacheKey: string, path: string): Promise<ImageEntry | null> {
   if (!API_KEY) return null;
 
-  const cached = logoCache.get(teamId);
+  const cached = imageCache.get(cacheKey);
   const now = Date.now();
-  if (cached && now - cached.fetchedAt < LOGO_REVALIDATE_MS) {
+  if (cached && now - cached.fetchedAt < IMAGE_REVALIDATE_MS) {
     return cached;
   }
 
   try {
-    const res = await fetch(`https://${API_HOST}/teams/get-logo?teamId=${teamId}`, {
+    const res = await fetch(`https://${API_HOST}${path}`, {
       headers: {
         "x-rapidapi-host": API_HOST,
         "x-rapidapi-key": API_KEY,
@@ -233,17 +232,55 @@ export async function getTeamLogo(
     });
 
     if (!res.ok) {
-      throw new Error(`Sofascore logo API ${res.status} - teamId ${teamId}`);
+      throw new Error(`Sofascore image API ${res.status} - ${path}`);
     }
 
     const bytes = await res.arrayBuffer();
     const contentType = res.headers.get("content-type") ?? "image/png";
-    const entry: LogoCacheEntry = { bytes, contentType, fetchedAt: now };
-    logoCache.set(teamId, entry);
+    const entry: ImageEntry = { bytes, contentType, fetchedAt: now };
+    imageCache.set(cacheKey, entry);
     return entry;
   } catch (err) {
-    console.error("[sofascore] logo fetch failed:", teamId, err);
+    console.error("[sofascore] image fetch failed:", path, err);
     if (cached) return cached;
     return null;
   }
+}
+
+export async function getTeamLogo(teamId: number): Promise<ImageEntry | null> {
+  return sofaGetImage(`team-${teamId}`, `/teams/get-logo?teamId=${teamId}`);
+}
+
+export async function getPlayerImage(playerId: number): Promise<ImageEntry | null> {
+  return sofaGetImage(`player-${playerId}`, `/players/get-image?playerId=${playerId}`);
+}
+
+export type PlayerSeasonStats = {
+  goals: number;
+  assists: number;
+  appearances: number;
+  minutesPlayed: number;
+  yellowCards: number;
+  redCards: number;
+  saves: number;
+  tackles: number;
+  interceptions: number;
+  cleanSheet: number;
+};
+
+export type PlayerStatSeasonEntry = {
+  statistics: PlayerSeasonStats;
+  year: string;
+  team?: { name: string };
+};
+
+type AllStatisticsResponse = { seasons: PlayerStatSeasonEntry[] };
+
+export async function getPlayerStatistics(
+  playerId: number,
+): Promise<PlayerStatSeasonEntry[] | null> {
+  const data = await sofaGet<AllStatisticsResponse>(
+    `/players/get-all-statistics?playerId=${playerId}`,
+  );
+  return data?.seasons ?? null;
 }

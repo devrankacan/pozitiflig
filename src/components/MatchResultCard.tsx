@@ -14,8 +14,8 @@ function TeamLabel({
   const className = `flex flex-1 items-center gap-2 text-sm font-semibold sm:text-lg ${
     align === "right" ? "justify-end text-right" : "justify-start text-left"
   }`;
-  const nameSpan = <span className="truncate">{name}</span>;
-  const logo = <TeamLogo teamId={teamId} name={name} size={28} />;
+  const nameSpan = <span key="name" className="truncate">{name}</span>;
+  const logo = <TeamLogo key="logo" teamId={teamId} name={name} size={28} />;
   const inner = align === "right" ? [nameSpan, logo] : [logo, nameSpan];
 
   if (!teamId) {
