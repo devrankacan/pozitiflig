@@ -2,10 +2,34 @@ import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import StatLeaderList from "@/components/StatLeaderList";
 import MatchResultCard from "@/components/MatchResultCard";
-import { champions, golKrallari, asistKrallari, kuzeyPlayoff, matches } from "@/data/league";
+import { champions } from "@/data/league";
+import type { Match } from "@/data/league";
+import { getGolKrallari, getAsistKrallari, getKuzeyPlayoff, getKuzeyMatches } from "@/lib/league-data";
 
-export default function Home() {
-  const finalMatch = matches.find((m) => m.id === "kuzey-final");
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches] = await Promise.all([
+    getGolKrallari(),
+    getAsistKrallari(),
+    getKuzeyPlayoff(),
+    getKuzeyMatches(),
+  ]);
+
+  const finalEntry = kuzeyPlayoff.find((p) => p.round === "Final");
+  const featuredMatch: Match | null = finalEntry
+    ? {
+        id: "kuzey-final",
+        league: "Kuzey Ligi",
+        round: "Final",
+        home: finalEntry.home,
+        away: finalEntry.away,
+        homeScore: finalEntry.homeScore,
+        awayScore: finalEntry.awayScore,
+        date: "Play-Off",
+        status: "played",
+      }
+    : (kuzeyMatches[0] ?? null);
 
   return (
     <div>
@@ -58,11 +82,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final maçı öne çıkan */}
-      {finalMatch && (
+      {/* Öne çıkan maç */}
+      {featuredMatch && (
         <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
           <SectionHeading eyebrow="Öne Çıkan" title="Kuzey Ligi Finali" />
-          <MatchResultCard match={finalMatch} />
+          <MatchResultCard match={featuredMatch} />
         </section>
       )}
 
@@ -80,49 +104,36 @@ export default function Home() {
       </section>
 
       {/* Play-off */}
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <SectionHeading eyebrow="Kuzey Ligi" title="Play-Off Takvimi" />
-        <div className="pl-card p-6">
-          <div className="grid gap-6 sm:grid-cols-3">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-                Yarı Final
-              </span>
-              <p className="mt-2 font-semibold">
-                {kuzeyPlayoff[0].home}{" "}
-                <span className="text-accent">
-                  {kuzeyPlayoff[0].homeScore}-{kuzeyPlayoff[0].awayScore}
-                </span>{" "}
-                {kuzeyPlayoff[0].away}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-                Yarı Final
-              </span>
-              <p className="mt-2 font-semibold">
-                {kuzeyPlayoff[1].home}{" "}
-                <span className="text-accent">
-                  {kuzeyPlayoff[1].homeScore}-{kuzeyPlayoff[1].awayScore}
-                </span>{" "}
-                {kuzeyPlayoff[1].away}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-accent-2">
-                Final
-              </span>
-              <p className="mt-2 font-semibold">
-                {kuzeyPlayoff[2].home}{" "}
-                <span className="text-accent-2">
-                  {kuzeyPlayoff[2].homeScore}-{kuzeyPlayoff[2].awayScore}
-                </span>{" "}
-                {kuzeyPlayoff[2].away}
-              </p>
+      {kuzeyPlayoff.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+          <SectionHeading eyebrow="Kuzey Ligi" title="Play-Off Takvimi" />
+          <div className="pl-card p-6">
+            <div className="grid gap-6 sm:grid-cols-3">
+              {kuzeyPlayoff.map((p, idx) => {
+                const isFinal = p.round === "Final";
+                return (
+                  <div key={`${p.round}-${idx}`}>
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-widest ${
+                        isFinal ? "text-accent-2" : "text-muted"
+                      }`}
+                    >
+                      {p.round}
+                    </span>
+                    <p className="mt-2 font-semibold">
+                      {p.home}{" "}
+                      <span className={isFinal ? "text-accent-2" : "text-accent"}>
+                        {p.homeScore}-{p.awayScore}
+                      </span>{" "}
+                      {p.away}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

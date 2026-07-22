@@ -1,4 +1,4 @@
-import { teams, matches, golKrallari, asistKrallari } from "@/data/league";
+import { teams, golKrallari, asistKrallari } from "@/data/league";
 
 export type SearchResultType = "sayfa" | "takım" | "maç" | "oyuncu";
 
@@ -37,12 +37,9 @@ function buildIndex(): SearchResult[] {
     href: `/takimlar#${slugify(team)}`,
   }));
 
-  const matchResults: SearchResult[] = matches.map((m) => ({
-    type: "maç",
-    label: `${m.home} - ${m.away}`,
-    sublabel: `${m.league} · ${m.round}`,
-    href: `/mac-sonuclari#${m.id}`,
-  }));
+  // Not: Maçlar artık canlı API'den geldiği için (dinamik id'ler), maç
+  // sonuçları arama dizinine dahil edilmiyor - "Maç Sonuçları" sayfa
+  // bağlantısı üzerinden erişilebilir.
 
   const playerResults: SearchResult[] = [
     ...golKrallari.map((p) => ({
@@ -59,7 +56,7 @@ function buildIndex(): SearchResult[] {
     })),
   ];
 
-  return [...PAGES, ...teamResults, ...matchResults, ...playerResults];
+  return [...PAGES, ...teamResults, ...playerResults];
 }
 
 const INDEX = buildIndex();

@@ -10,6 +10,10 @@ WorkingDirectory=/var/www/pozitiflig/current
 Environment=NODE_ENV=production
 Environment=PORT=3410
 Environment=HOSTNAME=127.0.0.1
+# Sofascore API anahtarı gibi sırlar repo dışındaki bu dosyada tutulur,
+# asla git'e girmez. Başındaki "-" dosya yoksa servisin yine de
+# başlamasını sağlar (API entegrasyonu opsiyoneldir, statik veriye düşer).
+EnvironmentFile=-/etc/pozitiflig.env
 ExecStart=/usr/bin/node /var/www/pozitiflig/current/server.js
 Restart=on-failure
 RestartSec=5

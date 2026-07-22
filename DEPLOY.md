@@ -135,7 +135,34 @@ sudo apt-get install -y certbot python3-certbot-nginx
 
 kurup yukarıdaki komutu tekrar çalıştır.
 
-## 7) Güncelleme yapmak istediğinde
+## 7) Sofascore API anahtarını ekle (canlı maç sonuçları/istatistikler için)
+
+Puan durumu widget'ları bu adım olmadan da çalışır. Ama Maç Sonuçları
+sayfasındaki canlı veriler ve Ana Sayfa'daki gol/asist krallığı ile
+Play-Off takvimi için RapidAPI'deki Sofascore anahtarın gerekiyor.
+
+Anahtar **repoya asla girmez** — sadece VPS'te, git'in hiç görmediği
+`/etc/pozitiflig.env` dosyasında tutulur:
+
+```bash
+sudo tee /etc/pozitiflig.env > /dev/null << 'EOF'
+SOFASCORE_RAPIDAPI_KEY=buraya_gercek_anahtarini_yaz
+SOFASCORE_REVALIDATE_SECONDS=43200
+EOF
+sudo chown root:pozitiflig /etc/pozitiflig.env
+sudo chmod 640 /etc/pozitiflig.env
+sudo systemctl restart pozitiflig
+```
+
+`SOFASCORE_REVALIDATE_SECONDS=43200` (12 saat), RapidAPI'nin ücretsiz
+planındaki 500 istek/aylık kotanın güvenle altında kalacak şekilde
+seçildi. Pro plana geçersen bu sayıyı düşürüp (örn. `1800` = 30 dakika)
+servisi yeniden başlatman yeterli — kod değişikliği gerekmez.
+
+Bu dosya olmadan (veya anahtar boşken) site **bozulmaz** — otomatik
+olarak statik/örnek verilere döner.
+
+## 8) Güncelleme yapmak istediğinde
 
 Yeni değişiklikleri (ben push ettikten sonra ya da sen elle) yayına almak
 için VPS'te tek komut yeterli:
