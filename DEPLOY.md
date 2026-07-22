@@ -148,6 +148,7 @@ Anahtar **repoya asla girmez** — sadece VPS'te, git'in hiç görmediği
 sudo tee /etc/pozitiflig.env > /dev/null << 'EOF'
 SOFASCORE_RAPIDAPI_KEY=buraya_gercek_anahtarini_yaz
 SOFASCORE_REVALIDATE_SECONDS=43200
+SOFASCORE_CACHE_DIR=/var/www/pozitiflig/data/sofascore-cache
 EOF
 sudo chown root:pozitiflig /etc/pozitiflig.env
 sudo chmod 640 /etc/pozitiflig.env
@@ -158,6 +159,16 @@ sudo systemctl restart pozitiflig
 planındaki 500 istek/aylık kotanın güvenle altında kalacak şekilde
 seçildi. Pro plana geçersen bu sayıyı düşürüp (örn. `1800` = 30 dakika)
 servisi yeniden başlatman yeterli — kod değişikliği gerekmez.
+
+**Önemli:** `SOFASCORE_CACHE_DIR` üretimde mutlaka ayarlanmalı ve
+deploy sırasında silinen `current/` klasörünün DIŞINDA bir yolu
+göstermeli (yukarıdaki `/var/www/pozitiflig/data/sofascore-cache` gibi
+— klasör uygulama tarafından otomatik oluşturulur, elle `mkdir`
+gerekmez). Bu sayede çekilen veriler ve görseller diske yazılır; her
+`deploy.sh`/servis restart'ında bellek sıfırlansa bile disk önbelleği
+korunur ve RapidAPI kotası her seferinde yeniden tüketilmez. Bu değer
+boş bırakılırsa önbellek yalnızca bellekte tutulur ve her restart'ta
+sıfırlanır.
 
 Bu dosya olmadan (veya anahtar boşken) site **bozulmaz** — otomatik
 olarak statik/örnek verilere döner.

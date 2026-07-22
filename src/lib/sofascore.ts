@@ -1,13 +1,32 @@
 // Sofascore verisi (RapidAPI üzerinden) - SADECE sunucu tarafında kullanılır.
 // API anahtarı hiçbir zaman istemciye (tarayıcıya) gönderilmez.
 //
-// Kota koruması: yanıtlar bu process'in belleğinde SOFASCORE_REVALIDATE_SECONDS
-// süresince önbelleklenir. API anahtarı tanımlı değilse ya da istek başarısız
-// olursa fonksiyonlar null döner; çağıran taraf statik verilere düşer.
+// Kota koruması: yanıtlar önce bu process'in belleğinde, ayrıca diskte
+// (SOFASCORE_CACHE_DIR) SOFASCORE_REVALIDATE_SECONDS süresince önbelleklenir.
+// Disk önbelleği, deploy/restart sonrası bellek sıfırlansa bile veriyi korur -
+// böylece her restart RapidAPI kotasını yeniden tüketmez. Süresi dolmuş bir
+// veri bile olsa, yeni istek başarısız olursa hiç veri olmamasından iyidir,
+// bu yüzden geri döndürülür. API anahtarı tanımlı değilse ya da hem canlı
+// istek hem de disk önbelleği başarısız olursa fonksiyonlar null döner;
+// çağıran taraf statik verilere düşer.
+
+import { promises as fs } from "fs";
+import path from "path";
+import { createHash } from "crypto";
 
 const API_HOST = "sofascore.p.rapidapi.com";
 const API_KEY = process.env.SOFASCORE_RAPIDAPI_KEY;
 const REVALIDATE_MS = Number(process.env.SOFASCORE_REVALIDATE_SECONDS ?? 43200) * 1000;
+
+const CACHE_DIR = process.env.SOFASCORE_CACHE_DIR
+  ? path.resolve(process.env.SOFASCORE_CACHE_DIR)
+  : path.join(process.cwd(), ".data", "sofascore-cache");
+const JSON_CACHE_DIR = path.join(CACHE_DIR, "json");
+const IMAGE_CACHE_DIR = path.join(CACHE_DIR, "images");
+
+function hashKey(key: string): string {
+  return createHash("sha1").update(key).digest("hex");
+}
 
 export const GUNEY = { tournamentId: 27221, seasonId: 98003 };
 export const KUZEY = { tournamentId: 34326, seasonId: 93435 };
@@ -15,20 +34,51 @@ export const KUZEY = { tournamentId: 34326, seasonId: 93435 };
 type CacheEntry<T> = { data: T; fetchedAt: number };
 const cache = new Map<string, CacheEntry<unknown>>();
 
+async function readJsonCacheFile<T>(key: string): Promise<CacheEntry<T> | null> {
+  try {
+    const raw = await fs.readFile(path.join(JSON_CACHE_DIR, `${hashKey(key)}.json`), "utf8");
+    const parsed = JSON.parse(raw) as { data: T; fetchedAt: number };
+    return { data: parsed.data, fetchedAt: parsed.fetchedAt };
+  } catch {
+    return null;
+  }
+}
+
+async function writeJsonCacheFile<T>(key: string, entry: CacheEntry<T>): Promise<void> {
+  try {
+    await fs.mkdir(JSON_CACHE_DIR, { recursive: true });
+    await fs.writeFile(
+      path.join(JSON_CACHE_DIR, `${hashKey(key)}.json`),
+      JSON.stringify({ path: key, data: entry.data, fetchedAt: entry.fetchedAt }),
+      "utf8",
+    );
+  } catch (err) {
+    console.error("[sofascore] disk cache write failed:", key, err);
+  }
+}
+
 async function sofaGet<T extends object>(
-  path: string,
+  apiPath: string,
   revalidateMs: number = REVALIDATE_MS,
 ): Promise<T | null> {
   if (!API_KEY) return null;
 
-  const cached = cache.get(path) as CacheEntry<T> | undefined;
   const now = Date.now();
+  let cached = cache.get(apiPath) as CacheEntry<T> | undefined;
+  if (!cached) {
+    const fromDisk = await readJsonCacheFile<T>(apiPath);
+    if (fromDisk) {
+      cached = fromDisk;
+      cache.set(apiPath, cached);
+    }
+  }
+
   if (cached && now - cached.fetchedAt < revalidateMs) {
     return cached.data;
   }
 
   try {
-    const res = await fetch(`https://${API_HOST}${path}`, {
+    const res = await fetch(`https://${API_HOST}${apiPath}`, {
       headers: {
         "x-rapidapi-host": API_HOST,
         "x-rapidapi-key": API_KEY,
@@ -38,15 +88,18 @@ async function sofaGet<T extends object>(
     });
 
     if (!res.ok) {
-      throw new Error(`Sofascore API ${res.status} - ${path}`);
+      throw new Error(`Sofascore API ${res.status} - ${apiPath}`);
     }
 
     const data = (await res.json()) as T;
-    cache.set(path, { data, fetchedAt: now });
+    const entry: CacheEntry<T> = { data, fetchedAt: now };
+    cache.set(apiPath, entry);
+    await writeJsonCacheFile(apiPath, entry);
     return data;
   } catch (err) {
-    console.error("[sofascore] fetch failed:", path, err);
-    // Eski (süresi dolmuş) veri varsa, hiç veri olmamasından iyidir.
+    console.error("[sofascore] fetch failed:", apiPath, err);
+    // Eski (süresi dolmuş) veri varsa - bellekten ya da diskten - hiç veri
+    // olmamasından iyidir.
     if (cached) return cached.data;
     return null;
   }
@@ -207,23 +260,60 @@ export async function getSquad(teamId: number): Promise<Squad | null> {
 
 // Görseller (takım/oyuncu logosu) neredeyse hiç değişmediği için ayrı ve
 // çok daha uzun bir önbellek süresi kullanılır (varsayılan 30 gün) - kotayı
-// gereksiz yormaz.
+// gereksiz yormaz. cacheKey zaten dosya adı olarak güvenli (örn. "team-123").
 type ImageEntry = { bytes: ArrayBuffer; contentType: string; fetchedAt: number };
 const imageCache = new Map<string, ImageEntry>();
 const IMAGE_REVALIDATE_MS =
   Number(process.env.SOFASCORE_LOGO_REVALIDATE_SECONDS ?? 2592000) * 1000;
 
-async function sofaGetImage(cacheKey: string, path: string): Promise<ImageEntry | null> {
+async function readImageCacheFile(cacheKey: string): Promise<ImageEntry | null> {
+  try {
+    const metaRaw = await fs.readFile(path.join(IMAGE_CACHE_DIR, `${cacheKey}.json`), "utf8");
+    const meta = JSON.parse(metaRaw) as { contentType: string; fetchedAt: number };
+    const bytes = await fs.readFile(path.join(IMAGE_CACHE_DIR, `${cacheKey}.bin`));
+    return {
+      bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      contentType: meta.contentType,
+      fetchedAt: meta.fetchedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeImageCacheFile(cacheKey: string, entry: ImageEntry): Promise<void> {
+  try {
+    await fs.mkdir(IMAGE_CACHE_DIR, { recursive: true });
+    await fs.writeFile(path.join(IMAGE_CACHE_DIR, `${cacheKey}.bin`), Buffer.from(entry.bytes));
+    await fs.writeFile(
+      path.join(IMAGE_CACHE_DIR, `${cacheKey}.json`),
+      JSON.stringify({ contentType: entry.contentType, fetchedAt: entry.fetchedAt }),
+      "utf8",
+    );
+  } catch (err) {
+    console.error("[sofascore] image disk cache write failed:", cacheKey, err);
+  }
+}
+
+async function sofaGetImage(cacheKey: string, apiPath: string): Promise<ImageEntry | null> {
   if (!API_KEY) return null;
 
-  const cached = imageCache.get(cacheKey);
   const now = Date.now();
+  let cached = imageCache.get(cacheKey);
+  if (!cached) {
+    const fromDisk = await readImageCacheFile(cacheKey);
+    if (fromDisk) {
+      cached = fromDisk;
+      imageCache.set(cacheKey, cached);
+    }
+  }
+
   if (cached && now - cached.fetchedAt < IMAGE_REVALIDATE_MS) {
     return cached;
   }
 
   try {
-    const res = await fetch(`https://${API_HOST}${path}`, {
+    const res = await fetch(`https://${API_HOST}${apiPath}`, {
       headers: {
         "x-rapidapi-host": API_HOST,
         "x-rapidapi-key": API_KEY,
@@ -233,16 +323,17 @@ async function sofaGetImage(cacheKey: string, path: string): Promise<ImageEntry 
     });
 
     if (!res.ok) {
-      throw new Error(`Sofascore image API ${res.status} - ${path}`);
+      throw new Error(`Sofascore image API ${res.status} - ${apiPath}`);
     }
 
     const bytes = await res.arrayBuffer();
     const contentType = res.headers.get("content-type") ?? "image/png";
     const entry: ImageEntry = { bytes, contentType, fetchedAt: now };
     imageCache.set(cacheKey, entry);
+    await writeImageCacheFile(cacheKey, entry);
     return entry;
   } catch (err) {
-    console.error("[sofascore] image fetch failed:", path, err);
+    console.error("[sofascore] image fetch failed:", apiPath, err);
     if (cached) return cached;
     return null;
   }
