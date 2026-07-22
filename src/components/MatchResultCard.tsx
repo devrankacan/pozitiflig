@@ -1,5 +1,33 @@
+import Link from "next/link";
 import type { Match } from "@/data/league";
 import TeamLogo from "@/components/TeamLogo";
+
+function TeamLabel({
+  teamId,
+  name,
+  align,
+}: {
+  teamId?: number;
+  name: string;
+  align: "right" | "left";
+}) {
+  const className = `flex flex-1 items-center gap-2 text-sm font-semibold sm:text-lg ${
+    align === "right" ? "justify-end text-right" : "justify-start text-left"
+  }`;
+  const nameSpan = <span className="truncate">{name}</span>;
+  const logo = <TeamLogo teamId={teamId} name={name} size={28} />;
+  const inner = align === "right" ? [nameSpan, logo] : [logo, nameSpan];
+
+  if (!teamId) {
+    return <span className={className}>{inner}</span>;
+  }
+
+  return (
+    <Link href={`/takimlar/${teamId}`} className={`${className} transition-colors hover:text-accent`}>
+      {inner}
+    </Link>
+  );
+}
 
 export default function MatchResultCard({ match }: { match: Match }) {
   const played = match.status === "played";
@@ -12,10 +40,7 @@ export default function MatchResultCard({ match }: { match: Match }) {
         <span>{match.date}</span>
       </div>
       <div className="flex items-center justify-between gap-2 sm:gap-3">
-        <span className="flex flex-1 items-center justify-end gap-2 text-right text-sm font-semibold sm:text-lg">
-          <span className="truncate">{match.home}</span>
-          <TeamLogo teamId={match.homeTeamId} name={match.home} size={28} />
-        </span>
+        <TeamLabel teamId={match.homeTeamId} name={match.home} align="right" />
         <span
           className={`shrink-0 rounded-lg px-3 py-1 text-lg font-extrabold sm:text-xl ${
             played ? "bg-surface-2 text-accent" : "bg-surface-2 text-muted"
@@ -25,10 +50,7 @@ export default function MatchResultCard({ match }: { match: Match }) {
             ? `${match.homeScore} - ${match.awayScore}`
             : match.time ?? "VS"}
         </span>
-        <span className="flex flex-1 items-center justify-start gap-2 text-left text-sm font-semibold sm:text-lg">
-          <TeamLogo teamId={match.awayTeamId} name={match.away} size={28} />
-          <span className="truncate">{match.away}</span>
-        </span>
+        <TeamLabel teamId={match.awayTeamId} name={match.away} align="left" />
       </div>
     </div>
   );

@@ -15,12 +15,15 @@ export const KUZEY = { tournamentId: 34326, seasonId: 93435 };
 type CacheEntry<T> = { data: T; fetchedAt: number };
 const cache = new Map<string, CacheEntry<unknown>>();
 
-async function sofaGet<T extends object>(path: string): Promise<T | null> {
+async function sofaGet<T extends object>(
+  path: string,
+  revalidateMs: number = REVALIDATE_MS,
+): Promise<T | null> {
   if (!API_KEY) return null;
 
   const cached = cache.get(path) as CacheEntry<T> | undefined;
   const now = Date.now();
-  if (cached && now - cached.fetchedAt < REVALIDATE_MS) {
+  if (cached && now - cached.fetchedAt < revalidateMs) {
     return cached.data;
   }
 
@@ -151,6 +154,54 @@ export async function getCupTrees(
     `/tournaments/get-cuptrees?tournamentId=${tournamentId}&seasonId=${seasonId}`,
   );
   return data?.cupTrees ?? null;
+}
+
+type SquadPlayerRaw = {
+  id: number;
+  name: string;
+  shortName: string;
+  position: string;
+  jerseyNumber: string;
+  dateOfBirthTimestamp: number | null;
+  team?: { name: string };
+};
+
+type SquadResponse = { players: { player: SquadPlayerRaw }[] };
+
+export type SquadPlayer = {
+  id: number;
+  name: string;
+  shortName: string;
+  position: string;
+  jerseyNumber: string;
+  dateOfBirthTimestamp: number | null;
+};
+
+export type Squad = { teamName: string; players: SquadPlayer[] };
+
+// Kadrolar sezon içinde neredeyse hiç değişmediği için maç/istatistik
+// verisinden çok daha uzun bir önbellek süresi kullanılır (varsayılan 7 gün).
+const SQUAD_REVALIDATE_MS =
+  Number(process.env.SOFASCORE_SQUAD_REVALIDATE_SECONDS ?? 604800) * 1000;
+
+export async function getSquad(teamId: number): Promise<Squad | null> {
+  const data = await sofaGet<SquadResponse>(
+    `/teams/get-squad?teamId=${teamId}`,
+    SQUAD_REVALIDATE_MS,
+  );
+  if (!data?.players || data.players.length === 0) return null;
+
+  const teamName = data.players[0].player.team?.name ?? "";
+  const players: SquadPlayer[] = data.players.map((p) => ({
+    id: p.player.id,
+    name: p.player.name,
+    shortName: p.player.shortName,
+    position: p.player.position,
+    jerseyNumber: p.player.jerseyNumber,
+    dateOfBirthTimestamp: p.player.dateOfBirthTimestamp,
+  }));
+
+  return { teamName, players };
 }
 
 // Takım logoları neredeyse hiç değişmediği için ayrı ve çok daha uzun bir

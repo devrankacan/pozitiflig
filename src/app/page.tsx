@@ -14,6 +14,26 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function PlayoffTeamLabel({ teamId, name }: { teamId?: number; name: string }) {
+  const inner = (
+    <>
+      <TeamLogo teamId={teamId} name={name} size={20} />
+      {name}
+    </>
+  );
+  if (!teamId) {
+    return <span className="inline-flex items-center gap-1.5">{inner}</span>;
+  }
+  return (
+    <Link
+      href={`/takimlar/${teamId}`}
+      className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
+    >
+      {inner}
+    </Link>
+  );
+}
+
 export default async function Home() {
   const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches, champions] = await Promise.all([
     getGolKrallari(),
@@ -81,10 +101,20 @@ export default async function Home() {
               <span className="text-xs font-semibold uppercase tracking-widest text-accent-2">
                 {c.league} Şampiyonu
               </span>
-              <div className="mt-2 flex items-center gap-3">
-                <TeamLogo teamId={c.teamId} name={c.team} size={36} />
-                <h3 className="text-xl font-bold">{c.team}</h3>
-              </div>
+              {c.teamId ? (
+                <Link
+                  href={`/takimlar/${c.teamId}`}
+                  className="mt-2 flex items-center gap-3 transition-colors hover:text-accent"
+                >
+                  <TeamLogo teamId={c.teamId} name={c.team} size={36} />
+                  <h3 className="text-xl font-bold">{c.team}</h3>
+                </Link>
+              ) : (
+                <div className="mt-2 flex items-center gap-3">
+                  <TeamLogo teamId={c.teamId} name={c.team} size={36} />
+                  <h3 className="text-xl font-bold">{c.team}</h3>
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-between text-sm text-muted">
                 <span className="text-lg font-extrabold text-foreground">{c.score}</span>
                 <span>{c.date}</span>
@@ -133,17 +163,11 @@ export default async function Home() {
                       {p.round}
                     </span>
                     <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-                      <span className="inline-flex items-center gap-1.5">
-                        <TeamLogo teamId={p.homeTeamId} name={p.home} size={20} />
-                        {p.home}
-                      </span>
+                      <PlayoffTeamLabel teamId={p.homeTeamId} name={p.home} />
                       <span className={isFinal ? "text-accent-2" : "text-accent"}>
                         {p.homeScore}-{p.awayScore}
                       </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <TeamLogo teamId={p.awayTeamId} name={p.away} size={20} />
-                        {p.away}
-                      </span>
+                      <PlayoffTeamLabel teamId={p.awayTeamId} name={p.away} />
                     </p>
                   </div>
                 );
