@@ -148,10 +148,13 @@ Bu script otomatik olarak: kodu günceller, `npm ci` + build alır, yeni
 `current/` klasörünü hazırlar ve `pozitiflig` servisini yeniden başlatır.
 `sudo systemctl restart` çağırdığı için ilk çalıştırmadan önce
 `pozitiflig` kullanıcısına parolasız bu komut için sudo izni vermen
-gerekebilir:
+gerekebilir. **Not:** sudoers kuralları argümanlarla birebir eşleşmesi
+gerektiği için sadece `restart` komutunu izinli hâle getiriyoruz (servis
+durumu kontrolü artık sudo gerektirmeyen bir `curl` health-check ile
+yapılıyor):
 
 ```bash
-echo 'pozitiflig ALL=(ALL) NOPASSWD: /bin/systemctl restart pozitiflig, /bin/systemctl status pozitiflig' \
+echo 'pozitiflig ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart pozitiflig, /bin/systemctl restart pozitiflig' \
   | sudo tee /etc/sudoers.d/pozitiflig
 ```
 

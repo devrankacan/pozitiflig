@@ -37,6 +37,12 @@ cp -r .next/static "$RELEASE_DIR/.next/static"
 
 echo "==> Servis yeniden başlatılıyor"
 sudo systemctl restart "$SERVICE_NAME"
-sudo systemctl --no-pager --lines=5 status "$SERVICE_NAME"
+
+sleep 2
+if curl -fsS -o /dev/null "http://127.0.0.1:3410/"; then
+  echo "==> Servis ayakta (http://127.0.0.1:3410/ -> 200)"
+else
+  echo "==> UYARI: servis 3410 portunda yanıt vermiyor, 'sudo systemctl status $SERVICE_NAME' ile kontrol et"
+fi
 
 echo "==> Tamamlandı: https://pozitiflig.taslak.site"
