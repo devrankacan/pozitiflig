@@ -263,6 +263,36 @@ klasörü `ProtectSystem=full`/`ProtectHome=true` kısıtlamalarının dışınd
 (bunlar `/etc`, `/usr`, `/home` gibi yerleri salt-okunur yapar; `/var`'a
 dokunmaz), bu yüzden servis dosyasında ekstra bir izin ayarına gerek yoktur.
 
+## 10) YouTube canlı yayın rozeti için API anahtarı ekle (opsiyonel)
+
+Maçlar sayfası, anahtar gerektirmeyen YouTube RSS beslemesiyle zaten
+çalışır. Ama bir videonun "şu an canlı yayında" olduğunu gösteren
+kırmızı rozet için ek, ücretsiz bir YouTube Data API v3 anahtarı
+gerekiyor (RSS beslemesi bu bilgiyi vermiyor).
+
+Anahtar **repoya asla girmez**, `/etc/pozitiflig.env` dosyasına eklenir:
+
+```bash
+sudo tee -a /etc/pozitiflig.env > /dev/null << 'EOF'
+YOUTUBE_API_KEY=buraya_gercek_anahtarini_yaz
+EOF
+sudo chmod 640 /etc/pozitiflig.env
+sudo systemctl restart pozitiflig
+```
+
+Anahtar Google Cloud Console'da (console.cloud.google.com) ücretsiz
+alınır: bir proje oluştur → "YouTube Data API v3"nü etkinleştir →
+Credentials → "+ Create credentials" → "API key". Güvenlik için
+anahtarı "API restrictions" ile sadece "YouTube Data API v3"e,
+"Application restrictions" ile de "IP addresses" seçip VPS'in IP'sine
+kısıtlamak iyi bir pratiktir (Application restrictions'ı "Websites"
+yapma — bu anahtar sunucudan kullanılıyor, tarayıcıdan değil).
+
+Bu anahtar tanımlı değilse (veya boşsa) site **bozulmaz** — sadece
+canlı rozeti gösterilmez, videolar normal şekilde listelenmeye devam
+eder. Günlük kota 10.000 birim; bu site (2 dakikada bir, 1 birimlik
+sorgu) günde ~720 birim harcar, kotanın çok altında kalır.
+
 ## Özet: izolasyon garantileri
 
 - Uygulama ayrı, yetkisiz bir sistem kullanıcısı (`pozitiflig`) altında
