@@ -26,6 +26,7 @@ const PAGES: SearchResult[] = [
   { type: "sayfa", label: "Ana Sayfa", href: "/" },
   { type: "sayfa", label: "Puan Durumu", href: "/puan-durumu" },
   { type: "sayfa", label: "Maç Sonuçları", href: "/mac-sonuclari" },
+  { type: "sayfa", label: "Maçlar", href: "/maclar" },
   { type: "sayfa", label: "Takımlar", href: "/takimlar" },
   { type: "sayfa", label: "Hakkında", href: "/hakkinda" },
 ];
