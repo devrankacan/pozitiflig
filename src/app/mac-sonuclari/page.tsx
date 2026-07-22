@@ -21,7 +21,7 @@ export default function MacSonuclariPage() {
       <div className="flex flex-col gap-10">
         {leagues.map((league) => (
           <div key={league}>
-            <h3 className="mb-4 text-lg font-bold text-teal">{league}</h3>
+            <h3 className="mb-4 text-lg font-bold text-accent">{league}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               {matches
                 .filter((m) => m.league === league)

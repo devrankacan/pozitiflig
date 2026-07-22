@@ -12,7 +12,7 @@ export default function Home() {
       {/* Hero */}
       <section className="border-b border-border bg-gradient-to-b from-surface to-background">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <span className="text-xs font-semibold uppercase tracking-widest text-teal">
+          <span className="text-xs font-semibold uppercase tracking-widest text-accent">
             2025/26 Sezonu
           </span>
           <h1 className="mt-3 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
@@ -25,7 +25,7 @@ export default function Home() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/puan-durumu"
-              className="rounded-full bg-gradient-to-r from-teal to-teal-dark px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+              className="rounded-full bg-gradient-to-r from-accent to-accent-dark px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
             >
               Puan Durumunu Gör
             </Link>
@@ -45,7 +45,7 @@ export default function Home() {
         <div className="grid gap-4 sm:grid-cols-3">
           {champions.map((c) => (
             <div key={c.team} className="pl-card p-6">
-              <span className="text-xs font-semibold uppercase tracking-widest text-orange">
+              <span className="text-xs font-semibold uppercase tracking-widest text-accent-2">
                 {c.league} Şampiyonu
               </span>
               <h3 className="mt-2 text-xl font-bold">{c.team}</h3>
@@ -67,11 +67,15 @@ export default function Home() {
       )}
 
       {/* İstatistik Krallıkları */}
-      <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
+      <section id="istatistikler" className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
         <SectionHeading eyebrow="Kuzey Ligi" title="Gol ve Asist Krallığı" />
         <div className="grid gap-4 sm:grid-cols-2">
-          <StatLeaderList title="Gol Krallığı" unit="gol" leaders={golKrallari} accent="orange" />
-          <StatLeaderList title="Asist Krallığı" unit="asist" leaders={asistKrallari} accent="teal" />
+          <div id="gol-krallik" className="scroll-mt-24">
+            <StatLeaderList title="Gol Krallığı" unit="gol" leaders={golKrallari} accent="secondary" />
+          </div>
+          <div id="asist-krallik" className="scroll-mt-24">
+            <StatLeaderList title="Asist Krallığı" unit="asist" leaders={asistKrallari} accent="primary" />
+          </div>
         </div>
       </section>
 
@@ -86,7 +90,7 @@ export default function Home() {
               </span>
               <p className="mt-2 font-semibold">
                 {kuzeyPlayoff[0].home}{" "}
-                <span className="text-teal">
+                <span className="text-accent">
                   {kuzeyPlayoff[0].homeScore}-{kuzeyPlayoff[0].awayScore}
                 </span>{" "}
                 {kuzeyPlayoff[0].away}
@@ -98,19 +102,19 @@ export default function Home() {
               </span>
               <p className="mt-2 font-semibold">
                 {kuzeyPlayoff[1].home}{" "}
-                <span className="text-teal">
+                <span className="text-accent">
                   {kuzeyPlayoff[1].homeScore}-{kuzeyPlayoff[1].awayScore}
                 </span>{" "}
                 {kuzeyPlayoff[1].away}
               </p>
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-orange">
+              <span className="text-xs font-semibold uppercase tracking-widest text-accent-2">
                 Final
               </span>
               <p className="mt-2 font-semibold">
                 {kuzeyPlayoff[2].home}{" "}
-                <span className="text-orange">
+                <span className="text-accent-2">
                   {kuzeyPlayoff[2].homeScore}-{kuzeyPlayoff[2].awayScore}
                 </span>{" "}
                 {kuzeyPlayoff[2].away}

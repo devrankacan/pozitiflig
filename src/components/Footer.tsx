@@ -19,7 +19,7 @@ export default function Footer() {
                 href="https://www.sofascore.com/tr/football/tournament/turkey-amateur/pozitiflig-guney-group-b/27221"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-teal hover:underline"
+                className="text-accent hover:underline"
               >
                 Sofascore
               </a>{" "}

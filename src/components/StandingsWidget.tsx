@@ -32,7 +32,7 @@ export default function StandingsWidget({
           href={sofascoreUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-teal hover:underline"
+          className="text-accent hover:underline"
         >
           Sofascore
         </a>{" "}

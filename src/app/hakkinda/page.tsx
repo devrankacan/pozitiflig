@@ -21,7 +21,7 @@ export default function HakkindaPage() {
         </p>
 
         <div>
-          <h3 className="mb-2 text-lg font-bold text-teal">Lig Formatı</h3>
+          <h3 className="mb-2 text-lg font-bold text-accent">Lig Formatı</h3>
           <ul className="flex list-inside list-disc flex-col gap-2 text-muted">
             <li>
               <span className="text-foreground">Kuzey Ligi:</span> Round-robin usulü lig aşamasının
@@ -39,14 +39,14 @@ export default function HakkindaPage() {
         </div>
 
         <div>
-          <h3 className="mb-2 text-lg font-bold text-teal">İstatistikler ve Veri Ortaklığı</h3>
+          <h3 className="mb-2 text-lg font-bold text-accent">İstatistikler ve Veri Ortaklığı</h3>
           <p className="text-muted">
             Puan durumu ve maç istatistikleri, resmi veri ortağı{" "}
             <a
               href="https://www.sofascore.com/tr/football/tournament/turkey-amateur/pozitiflig-guney-group-b/27221"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal hover:underline"
+              className="text-accent hover:underline"
             >
               Sofascore
             </a>{" "}

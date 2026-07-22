@@ -7,11 +7,11 @@ type Theme = "light" | "dark";
 const listeners = new Set<() => void>();
 
 function getSnapshot(): Theme {
-  return document.documentElement.classList.contains("light") ? "light" : "dark";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 function getServerSnapshot(): Theme {
-  return "dark";
+  return "light";
 }
 
 function subscribe(onStoreChange: () => void) {

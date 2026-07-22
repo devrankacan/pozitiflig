@@ -9,12 +9,7 @@ const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem("pozitiflig-theme");
-    var theme =
-      stored === "light" || stored === "dark"
-        ? stored
-        : window.matchMedia("(prefers-color-scheme: light)").matches
-          ? "light"
-          : "dark";
+    var theme = stored === "dark" ? "dark" : "light";
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
     document.documentElement.style.colorScheme = theme;

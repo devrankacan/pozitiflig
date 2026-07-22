@@ -4,15 +4,15 @@ export default function StatLeaderList({
   title,
   unit,
   leaders,
-  accent = "teal",
+  accent = "primary",
 }: {
   title: string;
   unit: string;
   leaders: StatLeader[];
-  accent?: "teal" | "orange";
+  accent?: "primary" | "secondary";
 }) {
   const [leader, ...rest] = leaders;
-  const accentClass = accent === "teal" ? "text-teal" : "text-orange";
+  const accentClass = accent === "primary" ? "text-accent" : "text-accent-2";
 
   return (
     <div className="pl-card flex flex-col p-5">

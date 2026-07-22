@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SectionHeading from "@/components/SectionHeading";
 import { teams } from "@/data/league";
+import { slugify } from "@/lib/search";
 
 export const metadata: Metadata = {
   title: "Takımlar | Pozitif Lig",
@@ -19,9 +20,10 @@ export default function TakimlarPage() {
         {teams.map((team) => (
           <div
             key={team}
-            className="pl-card flex flex-col items-center gap-3 p-6 text-center transition-colors hover:border-teal"
+            id={slugify(team)}
+            className="pl-card scroll-mt-24 flex flex-col items-center gap-3 p-6 text-center transition-colors hover:border-accent"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-lg font-extrabold text-teal">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-lg font-extrabold text-accent">
               {team
                 .split(" ")
                 .map((w) => w[0])

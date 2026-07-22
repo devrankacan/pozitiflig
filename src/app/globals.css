@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --background: #0a0e13;
-  --surface: #121821;
-  --surface-2: #1a222d;
-  --border: #232d3a;
-  --foreground: #f3f6f9;
-  --muted: #93a1b0;
-  --teal: #22d3c9;
-  --teal-dark: #0f9c93;
-  --orange: #f9822e;
-}
-
-:root.light {
   color-scheme: light;
   --background: #ffffff;
-  --surface: #f6f8fa;
-  --surface-2: #eef1f4;
-  --border: #dde3ea;
-  --foreground: #10151b;
-  --muted: #5b6673;
-  --teal: #0f766e;
-  --teal-dark: #115e56;
-  --orange: #c2410c;
+  --surface: #f3f6fb;
+  --surface-2: #e7edf7;
+  --border: #d6e0ee;
+  --foreground: #0b1a33;
+  --muted: #55637e;
+  --accent: #1d4ed8;
+  --accent-dark: #172554;
+  --accent-2: #0369a1;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --background: #070b16;
+  --surface: #0e1730;
+  --surface-2: #16213f;
+  --border: #22304f;
+  --foreground: #eef2ff;
+  --muted: #8b96b8;
+  --accent: #60a5fa;
+  --accent-dark: #93c5fd;
+  --accent-2: #38bdf8;
 }
 
 @theme inline {
@@ -33,9 +33,9 @@
   --color-border: var(--border);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-teal: var(--teal);
-  --color-teal-dark: var(--teal-dark);
-  --color-orange: var(--orange);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-2: var(--accent-2);
   --font-sans: var(--font-inter);
 }
 
@@ -48,7 +48,7 @@ body {
 }
 
 .pl-gradient-text {
-  background: linear-gradient(90deg, var(--teal) 0%, var(--orange) 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
