@@ -7,14 +7,18 @@ import {
   golKrallari as staticGol,
   asistKrallari as staticAsist,
   kuzeyPlayoff as staticKuzeyPlayoff,
+  champions as staticChampions,
+  teams as staticTeams,
   type Match,
   type StatLeader,
   type PlayoffMatch,
+  type Champion,
 } from "@/data/league";
 import {
   getLastMatches,
   getTopPlayers,
   getCupTrees,
+  getStandings,
   GUNEY,
   KUZEY,
   type SofaEvent,
@@ -38,6 +42,8 @@ function mapEvent(e: SofaEvent, league: string, idx: number): Match {
     round: e.roundInfo ? `${e.roundInfo.round}. Hafta` : "Lig Aşaması",
     home: e.homeTeam.name,
     away: e.awayTeam.name,
+    homeTeamId: e.homeTeam.id,
+    awayTeamId: e.awayTeam.id,
     homeScore: played ? e.homeScore.display : null,
     awayScore: played ? e.awayScore.display : null,
     date: formatDate(e.startTimestamp),
@@ -117,6 +123,8 @@ function mapCupTree(tree: CupTree): PlayoffMatch[] {
         round: roundLabel(round.description),
         home: home.team.name,
         away: away.team.name,
+        homeTeamId: home.team.id,
+        awayTeamId: away.team.id,
         homeScore,
         awayScore,
       });
@@ -141,4 +149,55 @@ export async function getGuneyPlayoff(): Promise<PlayoffMatch[] | null> {
   if (!tree) return null;
   const mapped = mapCupTree(tree);
   return mapped.length > 0 ? mapped : null;
+}
+
+export type TeamSummary = { id?: number; name: string };
+
+async function getAllStandingsTeams(): Promise<TeamSummary[] | null> {
+  const [kuzey, guney] = await Promise.all([
+    getStandings(KUZEY.tournamentId, KUZEY.seasonId),
+    getStandings(GUNEY.tournamentId, GUNEY.seasonId),
+  ]);
+
+  const groups = [...(kuzey ?? []), ...(guney ?? [])];
+  if (groups.length === 0) return null;
+
+  const byName = new Map<string, TeamSummary>();
+  for (const group of groups) {
+    for (const row of group.rows) {
+      byName.set(row.team.name, { id: row.team.id, name: row.team.name });
+    }
+  }
+  return [...byName.values()];
+}
+
+// Statik/kürüne edilmiş verilerdeki (Şampiyonlar gibi) takım isimlerini
+// canlı API'den gelen gerçek takım ID'leriyle eşleştirir - bulunamazsa
+// logo yerine baş harf rozetine düşülür.
+async function getTeamIdMap(): Promise<Map<string, number>> {
+  const teams = await getAllStandingsTeams();
+  const map = new Map<string, number>();
+  if (teams) {
+    for (const t of teams) {
+      if (t.id) map.set(t.name, t.id);
+    }
+  }
+  return map;
+}
+
+export async function getChampionsWithLogos(): Promise<Champion[]> {
+  const idMap = await getTeamIdMap();
+  if (idMap.size === 0) return staticChampions;
+  return staticChampions.map((c) => ({
+    ...c,
+    teamId: c.teamId ?? idMap.get(c.team),
+  }));
+}
+
+export async function getLiveTeams(): Promise<TeamSummary[]> {
+  const teams = await getAllStandingsTeams();
+  if (teams && teams.length > 0) {
+    return teams.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+  }
+  return staticTeams.map((name) => ({ name }));
 }

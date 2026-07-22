@@ -31,10 +31,13 @@ const PAGES: SearchResult[] = [
 ];
 
 function buildIndex(): SearchResult[] {
+  // Not: Takımlar sayfası artık canlı API'den gelen (bazen farklı/tam)
+  // isimlerle render edildiği için, burada statik isimlerden üretilen
+  // çapa (#slug) yerine sayfanın kendisine yönlendiriyoruz.
   const teamResults: SearchResult[] = teams.map((team) => ({
     type: "takım",
     label: team,
-    href: `/takimlar#${slugify(team)}`,
+    href: "/takimlar",
   }));
 
   // Not: Maçlar artık canlı API'den geldiği için (dinamik id'ler), maç

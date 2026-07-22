@@ -152,3 +152,47 @@ export async function getCupTrees(
   );
   return data?.cupTrees ?? null;
 }
+
+// Takım logoları neredeyse hiç değişmediği için ayrı ve çok daha uzun bir
+// önbellek süresi kullanılır (varsayılan 30 gün) - kotayı gereksiz yormaz.
+type LogoCacheEntry = { bytes: ArrayBuffer; contentType: string; fetchedAt: number };
+const logoCache = new Map<number, LogoCacheEntry>();
+const LOGO_REVALIDATE_MS =
+  Number(process.env.SOFASCORE_LOGO_REVALIDATE_SECONDS ?? 2592000) * 1000;
+
+export async function getTeamLogo(
+  teamId: number,
+): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  if (!API_KEY) return null;
+
+  const cached = logoCache.get(teamId);
+  const now = Date.now();
+  if (cached && now - cached.fetchedAt < LOGO_REVALIDATE_MS) {
+    return cached;
+  }
+
+  try {
+    const res = await fetch(`https://${API_HOST}/teams/get-logo?teamId=${teamId}`, {
+      headers: {
+        "x-rapidapi-host": API_HOST,
+        "x-rapidapi-key": API_KEY,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Sofascore logo API ${res.status} - teamId ${teamId}`);
+    }
+
+    const bytes = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") ?? "image/png";
+    const entry: LogoCacheEntry = { bytes, contentType, fetchedAt: now };
+    logoCache.set(teamId, entry);
+    return entry;
+  } catch (err) {
+    console.error("[sofascore] logo fetch failed:", teamId, err);
+    if (cached) return cached;
+    return null;
+  }
+}

@@ -18,6 +18,8 @@ function playoffToMatch(p: PlayoffMatch, league: string, idx: number): Match {
     round: p.round,
     home: p.home,
     away: p.away,
+    homeTeamId: p.homeTeamId,
+    awayTeamId: p.awayTeamId,
     homeScore: p.homeScore,
     awayScore: p.awayScore,
     date: "Play-Off",

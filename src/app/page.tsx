@@ -2,18 +2,25 @@ import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import StatLeaderList from "@/components/StatLeaderList";
 import MatchResultCard from "@/components/MatchResultCard";
-import { champions } from "@/data/league";
+import TeamLogo from "@/components/TeamLogo";
 import type { Match } from "@/data/league";
-import { getGolKrallari, getAsistKrallari, getKuzeyPlayoff, getKuzeyMatches } from "@/lib/league-data";
+import {
+  getGolKrallari,
+  getAsistKrallari,
+  getKuzeyPlayoff,
+  getKuzeyMatches,
+  getChampionsWithLogos,
+} from "@/lib/league-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches] = await Promise.all([
+  const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches, champions] = await Promise.all([
     getGolKrallari(),
     getAsistKrallari(),
     getKuzeyPlayoff(),
     getKuzeyMatches(),
+    getChampionsWithLogos(),
   ]);
 
   const finalEntry = kuzeyPlayoff.find((p) => p.round === "Final");
@@ -24,6 +31,8 @@ export default async function Home() {
         round: "Final",
         home: finalEntry.home,
         away: finalEntry.away,
+        homeTeamId: finalEntry.homeTeamId,
+        awayTeamId: finalEntry.awayTeamId,
         homeScore: finalEntry.homeScore,
         awayScore: finalEntry.awayScore,
         date: "Play-Off",
@@ -72,7 +81,10 @@ export default async function Home() {
               <span className="text-xs font-semibold uppercase tracking-widest text-accent-2">
                 {c.league} Şampiyonu
               </span>
-              <h3 className="mt-2 text-xl font-bold">{c.team}</h3>
+              <div className="mt-2 flex items-center gap-3">
+                <TeamLogo teamId={c.teamId} name={c.team} size={36} />
+                <h3 className="text-xl font-bold">{c.team}</h3>
+              </div>
               <div className="mt-4 flex items-center justify-between text-sm text-muted">
                 <span className="text-lg font-extrabold text-foreground">{c.score}</span>
                 <span>{c.date}</span>
@@ -120,12 +132,18 @@ export default async function Home() {
                     >
                       {p.round}
                     </span>
-                    <p className="mt-2 font-semibold">
-                      {p.home}{" "}
+                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+                      <span className="inline-flex items-center gap-1.5">
+                        <TeamLogo teamId={p.homeTeamId} name={p.home} size={20} />
+                        {p.home}
+                      </span>
                       <span className={isFinal ? "text-accent-2" : "text-accent"}>
                         {p.homeScore}-{p.awayScore}
-                      </span>{" "}
-                      {p.away}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <TeamLogo teamId={p.awayTeamId} name={p.away} size={20} />
+                        {p.away}
+                      </span>
                     </p>
                   </div>
                 );

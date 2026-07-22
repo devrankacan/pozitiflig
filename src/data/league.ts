@@ -4,6 +4,7 @@
 
 export type Champion = {
   team: string;
+  teamId?: number;
   league: string;
   season: string;
   score: string;
@@ -13,6 +14,7 @@ export type Champion = {
 export const champions: Champion[] = [
   {
     team: "Anka Sürücü Kursu",
+    teamId: 1218957,
     league: "Kuzey Ligi",
     season: "2025/26",
     score: "2-0",
@@ -62,6 +64,8 @@ export type Match = {
   round: string;
   home: string;
   away: string;
+  homeTeamId?: number;
+  awayTeamId?: number;
   homeScore: number | null;
   awayScore: number | null;
   date: string;
@@ -76,6 +80,8 @@ export const matches: Match[] = [
     round: "Final",
     home: "Anka Sürücü Kursu",
     away: "Deprem City",
+    homeTeamId: 1218957,
+    awayTeamId: 1217423,
     homeScore: 2,
     awayScore: 0,
     date: "22 Temmuz 2026",
@@ -87,6 +93,8 @@ export const matches: Match[] = [
     round: "Yarı Final",
     home: "Anka Sürücü Kursu",
     away: "Anka FK",
+    homeTeamId: 1218957,
+    awayTeamId: 1217933,
     homeScore: 3,
     awayScore: 0,
     date: "Temmuz 2026",
@@ -98,6 +106,7 @@ export const matches: Match[] = [
     round: "Yarı Final",
     home: "Deprem City",
     away: "Ota Boca Jrs.",
+    homeTeamId: 1217423,
     homeScore: 4,
     awayScore: 1,
     date: "Temmuz 2026",
@@ -109,6 +118,7 @@ export const matches: Match[] = [
     round: "1. Hafta",
     home: "Tuşhan",
     away: "Parkköy",
+    awayTeamId: 1176468,
     homeScore: 7,
     awayScore: 1,
     date: "2026",
@@ -120,14 +130,39 @@ export type PlayoffMatch = {
   round: string;
   home: string;
   away: string;
+  homeTeamId?: number;
+  awayTeamId?: number;
   homeScore: number;
   awayScore: number;
 };
 
 export const kuzeyPlayoff: PlayoffMatch[] = [
-  { round: "Yarı Final", home: "Anka Sürücü Kursu", away: "Anka FK", homeScore: 3, awayScore: 0 },
-  { round: "Yarı Final", home: "Deprem City", away: "Ota Boca Jrs.", homeScore: 4, awayScore: 1 },
-  { round: "Final", home: "Anka Sürücü Kursu", away: "Deprem City", homeScore: 2, awayScore: 0 },
+  {
+    round: "Yarı Final",
+    home: "Anka Sürücü Kursu",
+    away: "Anka FK",
+    homeTeamId: 1218957,
+    awayTeamId: 1217933,
+    homeScore: 3,
+    awayScore: 0,
+  },
+  {
+    round: "Yarı Final",
+    home: "Deprem City",
+    away: "Ota Boca Jrs.",
+    homeTeamId: 1217423,
+    homeScore: 4,
+    awayScore: 1,
+  },
+  {
+    round: "Final",
+    home: "Anka Sürücü Kursu",
+    away: "Deprem City",
+    homeTeamId: 1218957,
+    awayTeamId: 1217423,
+    homeScore: 2,
+    awayScore: 0,
+  },
 ];
 
 export const teams: string[] = [
