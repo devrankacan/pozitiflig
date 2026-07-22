@@ -1,0 +1,168 @@
+# Pozitif Lig - VPS Kurulum Rehberi
+
+Bu rehber, siteyi kendi VPS sunucunda **boş bir portta**, mevcut diğer
+sitelerini etkilemeden/onlardan etkilenmeden yayına almak için gereken
+adımları içerir. Uygulama sadece `127.0.0.1:3410` üzerinde (dışarıya kapalı,
+yalnızca sunucu içinden erişilebilir) çalışır; dışarıya açık tek şey mevcut
+Nginx'in `pozitiflig.taslak.site` için ekleyeceğin **yeni ve ayrı** bir
+config dosyasıdır. Var olan başka site config'lerine hiç dokunulmaz.
+
+Tüm komutları VPS'ine SSH ile bağlandıktan sonra çalıştır.
+
+## 0) Ön kontrol: 3410 portu boş mu?
+
+```bash
+sudo ss -tlnp | grep 3410
+```
+
+Bir çıktı **gelmiyorsa** port boştur, devam edebilirsin. Eğer bir şey
+kullanıyorsa, hem bu dosyadaki hem de `deploy/pozitiflig.service` ve
+`deploy/pozitiflig.nginx.conf` içindeki `3410` değerini boş başka bir port
+(örn. `3411`) ile değiştir.
+
+## 1) Node.js kurulu mu kontrol et
+
+```bash
+node -v
+```
+
+`v20.9.0` veya üzeri değilse (ya da hiç kurulu değilse), NodeSource
+üzerinden kur (bu adım mevcut başka Node uygulamalarını etkilemez, sistem
+genelinde Node sürümünü günceller — eğer başka bir sitende **farklı** bir
+Node sürümüne sıkı sıkıya bağımlı bir uygulama varsa bana haber ver, o
+zaman `nvm` ile izole bir kurulum yaparız):
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+## 2) Uygulama için ayrı ve yetkisiz bir kullanıcı oluştur
+
+Diğer sitelerden tamamen izole çalışması için:
+
+```bash
+sudo useradd --system --create-home --shell /usr/sbin/nologin pozitiflig
+sudo mkdir -p /var/www/pozitiflig
+sudo chown -R pozitiflig:pozitiflig /var/www/pozitiflig
+```
+
+## 3) Kodu çek ve ilk build'i al
+
+```bash
+sudo -u pozitiflig -H bash -c '
+  git clone --branch claude/pozitif-lig-website-9av9tk \
+    https://github.com/devrankacan/pozitiflig.git /var/www/pozitiflig/repo
+  cd /var/www/pozitiflig/repo
+  npm ci
+  npm run build
+  mkdir -p /var/www/pozitiflig/current
+  cp -r .next/standalone/. /var/www/pozitiflig/current/
+  cp -r public /var/www/pozitiflig/current/public
+  mkdir -p /var/www/pozitiflig/current/.next
+  cp -r .next/static /var/www/pozitiflig/current/.next/static
+'
+```
+
+> Not: `pozitiflig/pozitiflig` GitHub reposu **public**, bu yüzden VPS'te
+> ayrıca bir GitHub token/deploy key gerekmiyor.
+
+## 4) systemd servisini kur
+
+Repo içindeki `deploy/pozitiflig.service` dosyasını kopyala:
+
+```bash
+sudo cp /var/www/pozitiflig/repo/deploy/pozitiflig.service /etc/systemd/system/pozitiflig.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now pozitiflig
+sudo systemctl status pozitiflig --no-pager
+```
+
+`active (running)` görmelisin. Şunu da doğrula (sadece sunucu içinden
+erişilebilir olmalı):
+
+```bash
+curl -I http://127.0.0.1:3410/
+```
+
+`HTTP/1.1 200 OK` dönmeli.
+
+## 5) Nginx: yeni ve ayrı bir site config'i ekle
+
+Mevcut Nginx config'lerine **dokunmuyoruz**, sadece yeni bir dosya
+ekliyoruz:
+
+```bash
+sudo cp /var/www/pozitiflig/repo/deploy/pozitiflig.nginx.conf \
+  /etc/nginx/sites-available/pozitiflig.taslak.site
+sudo ln -s /etc/nginx/sites-available/pozitiflig.taslak.site \
+  /etc/nginx/sites-enabled/pozitiflig.taslak.site
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`nginx -t` "syntax is ok / test is successful" demeli. Bu komut mevcut
+diğer sitelerin config'lerini de test eder ama **değiştirmez**; hata
+verirse muhtemelen port/isim çakışmasıdır, çıktısını bana gönder.
+
+DNS'in zaten `pozitiflig.taslak.site` için VPS IP'sine yönlendirildiğini
+belirttin. Doğrulamak için:
+
+```bash
+dig +short pozitiflig.taslak.site
+```
+
+VPS'inin IP adresini döndürmeli. Şimdi tarayıcıdan
+`http://pozitiflig.taslak.site` açılmalı.
+
+## 6) SSL sertifikası (HTTPS) ekle
+
+Sunucunda zaten `certbot` kuruluysa (diğer siteler için kullanıyorsan
+büyük ihtimalle kuruludur):
+
+```bash
+sudo certbot --nginx -d pozitiflig.taslak.site
+```
+
+Bu komut **yalnızca** `pozitiflig.taslak.site` için sertifika alır ve
+sadece az önce eklediğimiz `/etc/nginx/sites-available/pozitiflig.taslak.site`
+dosyasını günceller — diğer sitelerin sertifikalarına dokunmaz.
+
+Certbot kurulu değilse:
+
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+```
+
+kurup yukarıdaki komutu tekrar çalıştır.
+
+## 7) Güncelleme yapmak istediğinde
+
+Yeni değişiklikleri (ben push ettikten sonra ya da sen elle) yayına almak
+için VPS'te tek komut yeterli:
+
+```bash
+sudo -u pozitiflig -H /var/www/pozitiflig/repo/deploy/deploy.sh
+```
+
+Bu script otomatik olarak: kodu günceller, `npm ci` + build alır, yeni
+`current/` klasörünü hazırlar ve `pozitiflig` servisini yeniden başlatır.
+`sudo systemctl restart` çağırdığı için ilk çalıştırmadan önce
+`pozitiflig` kullanıcısına parolasız bu komut için sudo izni vermen
+gerekebilir:
+
+```bash
+echo 'pozitiflig ALL=(ALL) NOPASSWD: /bin/systemctl restart pozitiflig, /bin/systemctl status pozitiflig' \
+  | sudo tee /etc/sudoers.d/pozitiflig
+```
+
+## Özet: izolasyon garantileri
+
+- Uygulama ayrı, yetkisiz bir sistem kullanıcısı (`pozitiflig`) altında
+  çalışır.
+- Sadece `127.0.0.1:3410` üzerinde dinler, dışarıya doğrudan açık değildir.
+- Dosyalar `/var/www/pozitiflig/` altında, diğer sitelerden tamamen ayrı
+  bir dizindedir.
+- Nginx tarafında sadece yeni bir `sites-available` dosyası eklenir,
+  mevcut hiçbir config değiştirilmez.
+- systemd servisi `ProtectSystem=full` ve `ProtectHome=true` ile
+  sınırlandırılmıştır; sunucudaki diğer dosyalara yazamaz.

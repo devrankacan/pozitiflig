@@ -1,0 +1,25 @@
+[Unit]
+Description=Pozitif Lig Next.js uygulamasi
+After=network.target
+
+[Service]
+Type=simple
+User=pozitiflig
+Group=pozitiflig
+WorkingDirectory=/var/www/pozitiflig/current
+Environment=NODE_ENV=production
+Environment=PORT=3410
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node /var/www/pozitiflig/current/server.js
+Restart=on-failure
+RestartSec=5
+
+# İzolasyon: bu ayarlar sadece bu servisi kısıtlar, sunucudaki diğer
+# servisleri/siteleri etkilemez.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
