@@ -119,7 +119,7 @@ export default async function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {latestAnnouncements.map((a) => (
-              <Link key={a.id} href="/duyurular" className="pl-card group overflow-hidden">
+              <Link key={a.id} href={`/duyurular/${a.id}`} className="pl-card group overflow-hidden">
                 <div className="relative h-36 w-full bg-surface-2">
                   <Image
                     src={announcementImageUrl(a)}
