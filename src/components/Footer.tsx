@@ -1,13 +1,13 @@
+import Image from "next/image";
+
 export default function Footer() {
   return (
     <footer className="mt-16 border-t border-border">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
-            <span className="text-lg font-extrabold tracking-tight">
-              Pozitif<span className="pl-gradient-text">Lig</span>
-            </span>
-            <p className="mt-2 max-w-sm text-sm text-muted">
+            <Image src="/logo.png" alt="Pozitif Lig" width={1682} height={584} className="h-9 w-auto" />
+            <p className="mt-3 max-w-sm text-sm text-muted">
               Kuzey ve Güney Ligi başta olmak üzere Pozitif Lig&apos;in tüm maç sonuçları, puan
               durumları ve istatistikleri.
             </p>

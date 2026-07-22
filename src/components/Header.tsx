@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -25,18 +26,20 @@ export default function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center"
           onClick={() => {
             setOpen(false);
             setSearchOpen(false);
           }}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-background">
-            PL
-          </span>
-          <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
-            Pozitif<span className="pl-gradient-text">Lig</span>
-          </span>
+          <Image
+            src="/logo.png"
+            alt="Pozitif Lig"
+            width={1682}
+            height={584}
+            priority
+            className="h-9 w-auto"
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
