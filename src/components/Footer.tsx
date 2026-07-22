@@ -6,7 +6,13 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
-            <Image src="/logo.png" alt="Pozitif Lig" width={1682} height={584} className="h-9 w-auto" />
+            <Image
+              src="/logo.png"
+              alt="Pozitif Lig"
+              width={1682}
+              height={584}
+              className="site-logo h-9 w-auto"
+            />
             <p className="mt-3 max-w-sm text-sm text-muted">
               Kuzey ve Güney Ligi başta olmak üzere Pozitif Lig&apos;in tüm maç sonuçları, puan
               durumları ve istatistikleri.

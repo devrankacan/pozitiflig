@@ -38,7 +38,7 @@ export default function Header() {
             width={1682}
             height={584}
             priority
-            className="h-9 w-auto"
+            className="site-logo h-9 w-auto"
           />
         </Link>
 
