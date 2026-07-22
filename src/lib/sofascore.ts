@@ -9,6 +9,11 @@
 // bu yüzden geri döndürülür. API anahtarı tanımlı değilse ya da hem canlı
 // istek hem de disk önbelleği başarısız olursa fonksiyonlar null döner;
 // çağıran taraf statik verilere düşer.
+//
+// Maç sonuçları için ek olarak uyarlanabilir bir yenileme sıklığı var:
+// devam eden ya da başlamış olabilecek bir maç varsa (bkz. getLastMatches)
+// veri çok daha sık (SOFASCORE_LIVE_REVALIDATE_SECONDS, varsayılan 2 dakika)
+// yenilenir; aksi halde günde bir kez yenilenerek kota korunur.
 
 import { promises as fs } from "fs";
 import path from "path";
@@ -16,7 +21,11 @@ import { createHash } from "crypto";
 
 const API_HOST = "sofascore.p.rapidapi.com";
 const API_KEY = process.env.SOFASCORE_RAPIDAPI_KEY;
-const REVALIDATE_MS = Number(process.env.SOFASCORE_REVALIDATE_SECONDS ?? 43200) * 1000;
+// Boşta (canlı maç yokken) kullanılan varsayılan yenileme süresi - 24 saat.
+// Amatör ligde maç günleri haftada bir olduğu için bu gecikme kullanıcı
+// tarafında fark edilmez, ama RapidAPI'nin 500 istek/ay ücretsiz kotasında
+// standings/top-players/cuptrees/maçlar için rahat bir pay bırakır.
+const REVALIDATE_MS = Number(process.env.SOFASCORE_REVALIDATE_SECONDS ?? 86400) * 1000;
 
 const CACHE_DIR = process.env.SOFASCORE_CACHE_DIR
   ? path.resolve(process.env.SOFASCORE_CACHE_DIR)
@@ -55,6 +64,21 @@ async function writeJsonCacheFile<T>(key: string, entry: CacheEntry<T>): Promise
   } catch (err) {
     console.error("[sofascore] disk cache write failed:", key, err);
   }
+}
+
+// TTL'i beklemeden, bellekte ya da diskte olan son bilinen veriye (ne kadar
+// eski olursa olsun) bakar. Bir maçın ne zaman başladığı önceden bellidir,
+// bu yüzden "şu an canlı bir maç var mı" kararını TTL'i tüketmeden, mevcut
+// (belki saatler önce çekilmiş) veriden verebiliriz.
+async function peekJsonCache<T extends object>(apiPath: string): Promise<T | null> {
+  const inMemory = cache.get(apiPath) as CacheEntry<T> | undefined;
+  if (inMemory) return inMemory.data;
+  const fromDisk = await readJsonCacheFile<T>(apiPath);
+  if (fromDisk) {
+    cache.set(apiPath, fromDisk);
+    return fromDisk.data;
+  }
+  return null;
 }
 
 async function sofaGet<T extends object>(
@@ -180,13 +204,34 @@ export async function getStandings(
   return data?.standings ?? null;
 }
 
+// Bir maçın ne zaman başlayacağı önceden bellidir; bu yüzden "şu an canlı
+// bir maç var mı" sorusunu, elimizdeki (belki eski) fikstür verisindeki
+// başlama saatleriyle şu anki saati karşılaştırarak yanıtlıyoruz - taze bir
+// istek atmadan. Canlı bir pencere tespit edilirse maç verisi çok daha sık
+// (varsayılan 2 dakika), aksi halde normal (24 saat) sıklıkla yenilenir.
+const LIVE_REVALIDATE_MS = Number(process.env.SOFASCORE_LIVE_REVALIDATE_SECONDS ?? 120) * 1000;
+const MATCH_WINDOW_MS =
+  Number(process.env.SOFASCORE_MATCH_WINDOW_MINUTES ?? 150) * 60 * 1000;
+
+function hasActiveMatchWindow(events: SofaEvent[] | undefined, now: number): boolean {
+  if (!events) return false;
+  return events.some((e) => {
+    if (e.status.type === "inprogress") return true;
+    const kickoff = e.startTimestamp * 1000;
+    return now >= kickoff && now <= kickoff + MATCH_WINDOW_MS;
+  });
+}
+
 export async function getLastMatches(
   tournamentId: number,
   seasonId: number,
 ): Promise<SofaEvent[] | null> {
-  const data = await sofaGet<EventsResponse>(
-    `/tournaments/get-last-matches?tournamentId=${tournamentId}&seasonId=${seasonId}&pageIndex=0`,
-  );
+  const apiPath = `/tournaments/get-last-matches?tournamentId=${tournamentId}&seasonId=${seasonId}&pageIndex=0`;
+  const priorData = await peekJsonCache<EventsResponse>(apiPath);
+  const revalidateMs = hasActiveMatchWindow(priorData?.events, Date.now())
+    ? LIVE_REVALIDATE_MS
+    : REVALIDATE_MS;
+  const data = await sofaGet<EventsResponse>(apiPath, revalidateMs);
   return data?.events ?? null;
 }
 

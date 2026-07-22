@@ -147,7 +147,9 @@ Anahtar **repoya asla girmez** — sadece VPS'te, git'in hiç görmediği
 ```bash
 sudo tee /etc/pozitiflig.env > /dev/null << 'EOF'
 SOFASCORE_RAPIDAPI_KEY=buraya_gercek_anahtarini_yaz
-SOFASCORE_REVALIDATE_SECONDS=43200
+SOFASCORE_REVALIDATE_SECONDS=86400
+SOFASCORE_LIVE_REVALIDATE_SECONDS=120
+SOFASCORE_MATCH_WINDOW_MINUTES=150
 SOFASCORE_CACHE_DIR=/var/www/pozitiflig/data/sofascore-cache
 EOF
 sudo chown root:pozitiflig /etc/pozitiflig.env
@@ -155,10 +157,26 @@ sudo chmod 640 /etc/pozitiflig.env
 sudo systemctl restart pozitiflig
 ```
 
-`SOFASCORE_REVALIDATE_SECONDS=43200` (12 saat), RapidAPI'nin ücretsiz
-planındaki 500 istek/aylık kotanın güvenle altında kalacak şekilde
-seçildi. Pro plana geçersen bu sayıyı düşürüp (örn. `1800` = 30 dakika)
-servisi yeniden başlatman yeterli — kod değişikliği gerekmez.
+Bu değerler uyarlanabilir bir yenileme stratejisi kurar:
+
+- `SOFASCORE_REVALIDATE_SECONDS=86400` (24 saat) — **canlı maç yokken**
+  kullanılır. Amatör ligde maç günleri haftada bir olduğu için bu gecikme
+  kullanıcı tarafında fark edilmez, ama RapidAPI'nin ücretsiz 500
+  istek/aylık kotasında rahat bir pay bırakır.
+- `SOFASCORE_LIVE_REVALIDATE_SECONDS=120` (2 dakika) — bir maçın
+  başlama saatine göre **hâlâ oynanıyor olabileceği** tespit edildiğinde
+  otomatik olarak bu sıklığa geçilir, skorlar Sofascore'daki ile
+  neredeyse eşzamanlı kalır. Maç bitince otomatik olarak yavaş moda
+  (24 saat) geri döner.
+- `SOFASCORE_MATCH_WINDOW_MINUTES=150` (2.5 saat) — bir maçın başlama
+  saatinden itibaren "muhtemelen hâlâ sürüyor" sayılacağı süre
+  (uzatmalar/gecikmeler için pay).
+
+Pro plana geçersen bu sayıları daha da kısaltabilirsin — kod değişikliği
+gerekmez, sadece bu dosyayı güncelleyip servisi yeniden başlatman
+yeterli. Not: Çok yoğun maç haftalarında (aynı gün birden fazla maç,
+uzun canlı pencereler) ücretsiz kota yine de zorlanabilir; bu durumda
+ücretli plana geçmek en güvenli çözümdür.
 
 **Önemli:** `SOFASCORE_CACHE_DIR` üretimde mutlaka ayarlanmalı ve
 deploy sırasında silinen `current/` klasörünün DIŞINDA bir yolu
