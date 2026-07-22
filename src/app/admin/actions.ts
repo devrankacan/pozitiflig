@@ -4,12 +4,17 @@ import { redirect } from "next/navigation";
 import { requireAdmin, destroyAdminSession } from "@/lib/admin-auth";
 import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/lib/announcements";
 
+function extractImageFile(formData: FormData): File | null {
+  const value = formData.get("image");
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
 export async function createAction(formData: FormData) {
   await requireAdmin();
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   if (!title || !body) return;
-  await createAnnouncement(title, body);
+  await createAnnouncement(title, body, extractImageFile(formData));
 }
 
 export async function updateAction(formData: FormData) {
@@ -18,7 +23,11 @@ export async function updateAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   if (!id || !title || !body) return;
-  await updateAnnouncement(id, title, body);
+  const removeImage = formData.get("removeImage") === "on";
+  await updateAnnouncement(id, title, body, {
+    imageFile: extractImageFile(formData),
+    removeImage,
+  });
 }
 
 export async function deleteAction(formData: FormData) {

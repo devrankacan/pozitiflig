@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
 import StatLeaderList from "@/components/StatLeaderList";
 import MatchResultCard from "@/components/MatchResultCard";
@@ -11,6 +12,15 @@ import {
   getKuzeyMatches,
   getChampionsWithLogos,
 } from "@/lib/league-data";
+import { getAnnouncements, announcementImageUrl } from "@/lib/announcements";
+
+function formatAnnouncementDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +45,16 @@ function PlayoffTeamLabel({ teamId, name }: { teamId?: number; name: string }) {
 }
 
 export default async function Home() {
-  const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches, champions] = await Promise.all([
-    getGolKrallari(),
-    getAsistKrallari(),
-    getKuzeyPlayoff(),
-    getKuzeyMatches(),
-    getChampionsWithLogos(),
-  ]);
+  const [golKrallari, asistKrallari, kuzeyPlayoff, kuzeyMatches, champions, announcements] =
+    await Promise.all([
+      getGolKrallari(),
+      getAsistKrallari(),
+      getKuzeyPlayoff(),
+      getKuzeyMatches(),
+      getChampionsWithLogos(),
+      getAnnouncements(),
+    ]);
+  const latestAnnouncements = announcements.slice(0, 3);
 
   const finalEntry = kuzeyPlayoff.find((p) => p.round === "Final");
   const featuredMatch: Match | null = finalEntry
@@ -91,6 +104,44 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Duyurular */}
+      {latestAnnouncements.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <SectionHeading eyebrow="Pozitif Lig" title="Duyurular" />
+            <Link
+              href="/duyurular"
+              className="mb-6 shrink-0 text-sm font-semibold text-accent transition-colors hover:text-accent-dark"
+            >
+              Tümünü Gör →
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {latestAnnouncements.map((a) => (
+              <Link key={a.id} href="/duyurular" className="pl-card group overflow-hidden">
+                <div className="relative h-36 w-full bg-surface-2">
+                  <Image
+                    src={announcementImageUrl(a)}
+                    alt={a.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                    {formatAnnouncementDate(a.createdAt)}
+                  </p>
+                  <h3 className="mt-1 font-bold transition-colors group-hover:text-accent">
+                    {a.title}
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Şampiyonlar */}
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">

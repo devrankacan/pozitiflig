@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getAnnouncements } from "@/lib/announcements";
+import { getAnnouncements, announcementImageUrl } from "@/lib/announcements";
 import { createAction, updateAction, deleteAction, logoutAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function AdminPage() {
 
       <div className="pl-card mb-10 p-6">
         <h2 className="mb-4 text-lg font-bold">Yeni Duyuru</h2>
-        <form action={createAction} className="flex flex-col gap-4">
+        <form action={createAction} encType="multipart/form-data" className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="new-title" className="text-sm font-medium">
               Başlık
@@ -70,6 +70,21 @@ export default async function AdminPage() {
               className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="new-image" className="text-sm font-medium">
+              Görsel (opsiyonel)
+            </label>
+            <input
+              id="new-image"
+              name="image"
+              type="file"
+              accept="image/*"
+              className="text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-foreground file:transition-colors hover:file:bg-border"
+            />
+            <p className="text-xs text-muted">
+              Görsel seçilmezse varsayılan duyuru görseli kullanılır.
+            </p>
+          </div>
           <button
             type="submit"
             className="self-start rounded-full bg-gradient-to-r from-accent to-accent-dark px-5 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90"
@@ -86,8 +101,30 @@ export default async function AdminPage() {
         )}
         {announcements.map((a) => (
           <div key={a.id} className="pl-card p-5">
-            <form action={updateAction} className="flex flex-col gap-3">
+            <form action={updateAction} encType="multipart/form-data" className="flex flex-col gap-3">
               <input type="hidden" name="id" value={a.id} />
+              <div className="flex items-start gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={announcementImageUrl(a)}
+                  alt=""
+                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                />
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <input
+                    name="image"
+                    type="file"
+                    accept="image/*"
+                    className="text-xs text-muted file:mr-2 file:rounded-full file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-foreground file:transition-colors hover:file:bg-border"
+                  />
+                  {a.image && (
+                    <label className="flex items-center gap-1.5 text-xs text-muted">
+                      <input type="checkbox" name="removeImage" className="accent-accent" />
+                      Görseli kaldır (varsayılana dön)
+                    </label>
+                  )}
+                </div>
+              </div>
               <input
                 name="title"
                 defaultValue={a.title}
