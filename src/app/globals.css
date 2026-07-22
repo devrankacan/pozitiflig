@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   --background: #0a0e13;
   --surface: #121821;
   --surface-2: #1a222d;
@@ -10,6 +11,19 @@
   --teal: #22d3c9;
   --teal-dark: #0f9c93;
   --orange: #f9822e;
+}
+
+:root.light {
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #f6f8fa;
+  --surface-2: #eef1f4;
+  --border: #dde3ea;
+  --foreground: #10151b;
+  --muted: #5b6673;
+  --teal: #0f766e;
+  --teal-dark: #115e56;
+  --orange: #c2410c;
 }
 
 @theme inline {
@@ -28,6 +42,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .pl-gradient-text {
@@ -41,4 +58,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1rem;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
