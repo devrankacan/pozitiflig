@@ -22,7 +22,7 @@ export default async function DuyurularPage() {
   const announcements = await getAnnouncements();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <SectionHeading eyebrow="Pozitif Lig" title="Duyurular" />
 
       {announcements.length === 0 ? (
@@ -30,7 +30,7 @@ export default async function DuyurularPage() {
           <p className="text-muted">Henüz bir duyuru yok. Yakında burada olacak.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {announcements.map((a) => (
             <article key={a.id} className="pl-card overflow-hidden">
               <div className="relative h-48 w-full bg-surface-2">
@@ -38,7 +38,7 @@ export default async function DuyurularPage() {
                   src={announcementImageUrl(a)}
                   alt={a.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 768px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover"
                 />
               </div>
