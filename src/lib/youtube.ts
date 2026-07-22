@@ -6,7 +6,10 @@ import { XMLParser } from "fast-xml-parser";
 
 const CHANNEL_ID = "UCP2niVOoFi7K7--tR0og9Pg";
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
-const REVALIDATE_MS = Number(process.env.YOUTUBE_REVALIDATE_SECONDS ?? 3600) * 1000;
+// Bu besleme anahtar/kota gerektirmediği için kısa bir önbellek süresi
+// kullanmanın maliyeti yok - canlı yayınların siteye neredeyse eşzamanlı
+// yansıması için varsayılan 2 dakika.
+const REVALIDATE_MS = Number(process.env.YOUTUBE_REVALIDATE_SECONDS ?? 120) * 1000;
 
 export type YoutubeVideo = {
   id: string;
