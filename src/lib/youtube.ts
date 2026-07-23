@@ -1,20 +1,22 @@
-// Pozitif Lig'in YouTube kanalındaki videoları anahtar gerektirmeyen,
-// herkese açık RSS beslemesinden çeker. Kanal yeni bir video yükledikçe
-// bu liste otomatik güncellenir - elle bir şey eklemek gerekmez.
+// Pozitif Lig'in YouTube kanalındaki videolarını YouTube Data API v3 ile
+// çeker. Daha önce anahtar gerektirmeyen genel RSS beslemesi (feeds/
+// videos.xml) kullanılıyordu, ama bu uç nokta YouTube tarafında bu kanal
+// için (ve muhtemelen genel olarak) 404 vermeye başladı - kanal ID'si
+// canonical link ile doğrulanmasına rağmen hem VPS'ten hem tarayıcıdan
+// tutarlı şekilde başarısız oldu. Bu yüzden resmi API'ye geçildi.
 //
-// Hangi videonun şu an CANLI yayında olduğunu RSS beslemesi söylemiyor;
-// bunun için (varsa) YouTube Data API v3 anahtarıyla ek, çok ucuz bir
-// sorgu (videos.list, 1 kota birimi) yapılır. Anahtar tanımlı değilse bu
-// adım atlanır ve site sorunsuz çalışmaya devam eder, sadece "canlı"
-// rozeti gösterilmez.
-
-import { XMLParser } from "fast-xml-parser";
+// Video listesi için channels.list çağrısına gerek yok: her kanalın
+// "yüklemeler" oynatma listesi ID'si, kanal ID'sindeki "UC" önekinin
+// "UU" ile değiştirilmesiyle elde edilir (YouTube'un belgelenmiş,
+// güvenilir kuralı) - bu da bir kota birimi tasarrufu sağlar.
+// Aynı sorguda hem "şu an canlı mı" hem de izlenme sayısı bilgisi
+// videos.list (part=snippet,statistics) ile tek seferde alınır.
+//
+// Anahtar tanımlı değilse fonksiyonlar boş liste döner; site çökmez,
+// sadece Maçlar sayfası "şu anda alınamıyor" mesajı gösterir.
 
 const CHANNEL_ID = "UCP2niVOoFi7K7--tR0og9Pg";
-const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
-// Bu besleme anahtar/kota gerektirmediği için kısa bir önbellek süresi
-// kullanmanın maliyeti yok - canlı yayınların siteye neredeyse eşzamanlı
-// yansıması için varsayılan 2 dakika.
+const UPLOADS_PLAYLIST_ID = `UU${CHANNEL_ID.slice(2)}`;
 const REVALIDATE_MS = Number(process.env.YOUTUBE_REVALIDATE_SECONDS ?? 120) * 1000;
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -28,76 +30,95 @@ export type YoutubeVideo = {
   isLive?: boolean;
 };
 
-type FeedEntry = {
-  "yt:videoId": string;
-  title: string;
-  published: string;
-  "media:group"?: {
-    "media:thumbnail"?: { "@_url"?: string };
-    "media:community"?: { "media:statistics"?: { "@_views"?: string } };
-  };
-};
-
-type FeedDoc = {
-  feed?: {
-    entry?: FeedEntry | FeedEntry[];
-  };
-};
-
-let cache: { data: YoutubeVideo[]; fetchedAt: number } | null = null;
-
-function parseFeed(xml: string): YoutubeVideo[] {
-  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
-  const doc = parser.parse(xml) as FeedDoc;
-  const rawEntries = doc.feed?.entry;
-  const entries = Array.isArray(rawEntries) ? rawEntries : rawEntries ? [rawEntries] : [];
-
-  return entries.map((e) => {
-    const id = e["yt:videoId"];
-    const thumbnailUrl =
-      e["media:group"]?.["media:thumbnail"]?.["@_url"] ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-    const views = e["media:group"]?.["media:community"]?.["media:statistics"]?.["@_views"];
-    return {
-      id,
-      title: String(e.title),
-      publishedAt: e.published,
-      thumbnailUrl,
-      viewCount: views ? Number(views) : undefined,
+type PlaylistItemsResponse = {
+  items?: {
+    snippet?: {
+      title?: string;
+      publishedAt?: string;
+      resourceId?: { videoId?: string };
+      thumbnails?: {
+        maxres?: { url?: string };
+        high?: { url?: string };
+        default?: { url?: string };
+      };
     };
-  });
+  }[];
+};
+
+async function fetchUploadedVideos(): Promise<YoutubeVideo[]> {
+  if (!YOUTUBE_API_KEY) return [];
+
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=15&playlistId=${UPLOADS_PLAYLIST_ID}&key=${YOUTUBE_API_KEY}`,
+    { cache: "no-store", signal: AbortSignal.timeout(8000) },
+  );
+
+  if (!res.ok) {
+    throw new Error(`YouTube playlistItems API ${res.status}`);
+  }
+
+  const data = (await res.json()) as PlaylistItemsResponse;
+  return (data.items ?? [])
+    .map((item) => {
+      const id = item.snippet?.resourceId?.videoId;
+      if (!id) return null;
+      const thumbnailUrl =
+        item.snippet?.thumbnails?.maxres?.url ??
+        item.snippet?.thumbnails?.high?.url ??
+        item.snippet?.thumbnails?.default?.url ??
+        `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+      return {
+        id,
+        title: item.snippet?.title ?? "",
+        publishedAt: item.snippet?.publishedAt ?? new Date().toISOString(),
+        thumbnailUrl,
+      } satisfies YoutubeVideo;
+    })
+    .filter((v): v is YoutubeVideo => v !== null);
 }
 
-type LiveStatusResponse = {
-  items?: { id: string; snippet?: { liveBroadcastContent?: string } }[];
+type VideoDetailsResponse = {
+  items?: {
+    id: string;
+    snippet?: { liveBroadcastContent?: string };
+    statistics?: { viewCount?: string };
+  }[];
 };
+
+type VideoDetails = { isLive: boolean; viewCount?: number };
 
 // videos.list tek çağrıda (id'ler virgülle ayrılmış, en fazla 50 tane) 1
 // kota birimi harcar - günlük 10.000 birim ücretsiz kotada bu sıklıkta
 // (varsayılan 2 dakikada bir, ~720 çağrı/gün) kullanmak sorun olmaz.
-async function fetchLiveStatus(videoIds: string[]): Promise<Map<string, boolean>> {
-  const liveById = new Map<string, boolean>();
-  if (!YOUTUBE_API_KEY || videoIds.length === 0) return liveById;
+async function fetchVideoDetails(videoIds: string[]): Promise<Map<string, VideoDetails>> {
+  const detailsById = new Map<string, VideoDetails>();
+  if (!YOUTUBE_API_KEY || videoIds.length === 0) return detailsById;
 
   try {
     const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoIds.join(",")}&key=${YOUTUBE_API_KEY}`,
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds.join(",")}&key=${YOUTUBE_API_KEY}`,
       { cache: "no-store", signal: AbortSignal.timeout(8000) },
     );
 
     if (!res.ok) {
-      throw new Error(`YouTube Data API ${res.status}`);
+      throw new Error(`YouTube videos API ${res.status}`);
     }
 
-    const data = (await res.json()) as LiveStatusResponse;
+    const data = (await res.json()) as VideoDetailsResponse;
     for (const item of data.items ?? []) {
-      liveById.set(item.id, item.snippet?.liveBroadcastContent === "live");
+      detailsById.set(item.id, {
+        isLive: item.snippet?.liveBroadcastContent === "live",
+        viewCount: item.statistics?.viewCount ? Number(item.statistics.viewCount) : undefined,
+      });
     }
   } catch (err) {
-    console.error("[youtube] live status fetch failed:", err);
+    console.error("[youtube] video details fetch failed:", err);
   }
 
-  return liveById;
+  return detailsById;
 }
+
+let cache: { data: YoutubeVideo[]; fetchedAt: number } | null = null;
 
 export async function getChannelVideos(): Promise<YoutubeVideo[]> {
   const now = Date.now();
@@ -106,30 +127,20 @@ export async function getChannelVideos(): Promise<YoutubeVideo[]> {
   }
 
   try {
-    const res = await fetch(FEED_URL, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!res.ok) {
-      throw new Error(`YouTube feed ${res.status}`);
-    }
-
-    const xml = await res.text();
-    const videos = parseFeed(xml);
-
-    const liveById = await fetchLiveStatus(videos.map((v) => v.id));
-    if (liveById.size > 0) {
-      for (const v of videos) {
-        v.isLive = liveById.get(v.id) ?? false;
+    const videos = await fetchUploadedVideos();
+    const detailsById = await fetchVideoDetails(videos.map((v) => v.id));
+    for (const v of videos) {
+      const details = detailsById.get(v.id);
+      if (details) {
+        v.isLive = details.isLive;
+        v.viewCount = details.viewCount;
       }
     }
 
     cache = { data: videos, fetchedAt: now };
     return videos;
   } catch (err) {
-    console.error("[youtube] feed fetch failed:", err);
+    console.error("[youtube] channel videos fetch failed:", err);
     if (cache) return cache.data;
     return [];
   }

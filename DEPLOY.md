@@ -263,12 +263,15 @@ klasörü `ProtectSystem=full`/`ProtectHome=true` kısıtlamalarının dışınd
 (bunlar `/etc`, `/usr`, `/home` gibi yerleri salt-okunur yapar; `/var`'a
 dokunmaz), bu yüzden servis dosyasında ekstra bir izin ayarına gerek yoktur.
 
-## 10) YouTube canlı yayın rozeti için API anahtarı ekle (opsiyonel)
+## 10) YouTube Data API anahtarını ekle (Maçlar sayfası için gerekli)
 
-Maçlar sayfası, anahtar gerektirmeyen YouTube RSS beslemesiyle zaten
-çalışır. Ama bir videonun "şu an canlı yayında" olduğunu gösteren
-kırmızı rozet için ek, ücretsiz bir YouTube Data API v3 anahtarı
-gerekiyor (RSS beslemesi bu bilgiyi vermiyor).
+Maçlar sayfası video listesini YouTube Data API v3 üzerinden çeker.
+(Eskiden anahtar gerektirmeyen genel RSS beslemesi kullanılıyordu, ama
+YouTube bu beslemeyi bu kanal için devre dışı bıraktı/404 vermeye
+başladı - hem VPS'ten hem farklı tarayıcılardan doğrulandı, kanal ID'si
+canonical link ile teyit edilmesine rağmen. Bu yüzden resmi API'ye
+geçildi.) Anahtar tanımlı değilse Maçlar sayfası "şu anda alınamıyor"
+mesajı gösterir, sitenin geri kalanı etkilenmez.
 
 Anahtar **repoya asla girmez**, `/etc/pozitiflig.env` dosyasına eklenir:
 
@@ -283,15 +286,17 @@ sudo systemctl restart pozitiflig
 Anahtar Google Cloud Console'da (console.cloud.google.com) ücretsiz
 alınır: bir proje oluştur → "YouTube Data API v3"nü etkinleştir →
 Credentials → "+ Create credentials" → "API key". Güvenlik için
-anahtarı "API restrictions" ile sadece "YouTube Data API v3"e,
-"Application restrictions" ile de "IP addresses" seçip VPS'in IP'sine
-kısıtlamak iyi bir pratiktir (Application restrictions'ı "Websites"
-yapma — bu anahtar sunucudan kullanılıyor, tarayıcıdan değil).
+anahtarı "API restrictions" ile sadece "YouTube Data API v3"e
+kısıtlamak iyi bir pratiktir. "Application restrictions" için "IP
+addresses" seçeceksen VPS'in **hem IPv4 hem IPv6** adresini eklemen
+gerekir (VPS istekleri ikisinden birini kullanabiliyor, sadece IPv4
+eklemek aralıklı `403` hatasına yol açar) — bundan kaçınmak için
+"None" seçmek de makul bir seçenektir, çünkü bu anahtar sadece
+sunucudan kullanılıyor, tarayıcıya hiç gönderilmiyor.
 
-Bu anahtar tanımlı değilse (veya boşsa) site **bozulmaz** — sadece
-canlı rozeti gösterilmez, videolar normal şekilde listelenmeye devam
-eder. Günlük kota 10.000 birim; bu site (2 dakikada bir, 1 birimlik
-sorgu) günde ~720 birim harcar, kotanın çok altında kalır.
+Günlük kota 10.000 birim; bu site videos.list ve playlistItems.list
+için (2 dakikada bir, toplam 2 birimlik sorgu) günde ~1440 birim
+harcar, kotanın çok altında kalır.
 
 ## Özet: izolasyon garantileri
 
