@@ -180,6 +180,7 @@ export const teams: string[] = [
 export const standingsWidgets = [
   {
     id: "sofa-standings-embed-181845-93435",
+    group: "kuzey" as const,
     title: "Pozitiflig Kuzey 2026",
     src: "https://widgets.sofascore.com/tr/embed/tournament/181845/season/93435/standings/Round%20robin%202026?widgetTitle=Round%20robin%202026&showCompetitionLogo=true",
     sofascoreUrl:
@@ -188,6 +189,7 @@ export const standingsWidgets = [
   },
   {
     id: "sofa-standings-embed-154654-98003",
+    group: "guney-a" as const,
     title: "Pozitiflig Güney, Grup A 2026",
     src: "https://widgets.sofascore.com/tr/embed/tournament/154654/season/98003/standings/Pozitiflig%20G%C3%BCney%2C%20Group%20A%202026?widgetTitle=Pozitiflig%20G%C3%BCney%2C%20Group%20A%202026&showCompetitionLogo=true",
     sofascoreUrl:
@@ -196,6 +198,7 @@ export const standingsWidgets = [
   },
   {
     id: "sofa-standings-embed-176335-98003",
+    group: "guney-b" as const,
     title: "Pozitiflig Güney, Grup B 2026",
     src: "https://widgets.sofascore.com/tr/embed/tournament/176335/season/98003/standings/Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026?widgetTitle=Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026&showCompetitionLogo=true",
     sofascoreUrl:

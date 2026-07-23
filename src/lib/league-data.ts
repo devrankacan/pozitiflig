@@ -28,14 +28,23 @@ import {
   type StandingsRow,
 } from "@/lib/sofascore";
 
+// Puan Durumu sayfasında puan tablosu + o gruba ait maç sonuçlarını aynı
+// sütunda göstermek için kullanılan sabit anahtar - hem canlı API'den
+// gelen bölümler hem de yedek Sofascore widget'ları bu anahtarla eşleşir.
+export type LeagueGroupKey = "kuzey" | "guney-a" | "guney-b" | "guney";
+
 // Güney Ligi'nin Grup A / Grup B ayrımı standings uç noktasında
 // `tournament.name` alanına bakılarak belirlenir (aynı yöntem maç
 // sonuçlarında da kullanılıyor). Kuzey Ligi tek grup olduğu için her
 // zaman "Kuzey Ligi" etiketiyle döner.
-function guneyGroupLabel(group: StandingsGroup): string {
-  if (group.tournament.name.includes("Group A")) return "Güney Ligi — Grup A";
-  if (group.tournament.name.includes("Group B")) return "Güney Ligi — Grup B";
-  return "Güney Ligi";
+function guneyGroupInfo(group: StandingsGroup): { key: LeagueGroupKey; label: string } {
+  if (group.tournament.name.includes("Group A")) {
+    return { key: "guney-a", label: "Güney Ligi — Grup A" };
+  }
+  if (group.tournament.name.includes("Group B")) {
+    return { key: "guney-b", label: "Güney Ligi — Grup B" };
+  }
+  return { key: "guney", label: "Güney Ligi" };
 }
 
 function formatDate(timestampSeconds: number): string {
@@ -233,7 +242,7 @@ async function getAllStandingsTeams(): Promise<TeamSummary[] | null> {
 // Ligi'nin Grup A/Grup B'si ayrı ayrı, doğru etiketlerle döner. API
 // erişilemezse null döner; sayfa bu durumda eski Sofascore iframe
 // widget'larına düşer.
-export type StandingsSection = { title: string; rows: StandingsRow[] };
+export type StandingsSection = { group: LeagueGroupKey; title: string; rows: StandingsRow[] };
 
 export async function getStandingsSections(): Promise<StandingsSection[] | null> {
   const { kuzey, guney } = await fetchAllStandingsGroups();
@@ -242,13 +251,16 @@ export async function getStandingsSections(): Promise<StandingsSection[] | null>
   const sections: StandingsSection[] = [];
   for (const group of kuzey ?? []) {
     sections.push({
+      group: "kuzey",
       title: "Kuzey Ligi",
       rows: [...group.rows].sort((a, b) => a.position - b.position),
     });
   }
   for (const group of guney ?? []) {
+    const info = guneyGroupInfo(group);
     sections.push({
-      title: guneyGroupLabel(group),
+      group: info.key,
+      title: info.label,
       rows: [...group.rows].sort((a, b) => a.position - b.position),
     });
   }
@@ -276,7 +288,7 @@ export async function getLiveTeamGroups(): Promise<TeamGroup[]> {
     groups.push({ title: "Kuzey Ligi", teams: toTeams(group) });
   }
   for (const group of guney ?? []) {
-    groups.push({ title: guneyGroupLabel(group), teams: toTeams(group) });
+    groups.push({ title: guneyGroupInfo(group).label, teams: toTeams(group) });
   }
   return groups;
 }

@@ -11,6 +11,7 @@ import {
   getKuzeyPlayoff,
   getGuneyPlayoff,
   getStandingsSections,
+  type StandingsSection,
 } from "@/lib/league-data";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,12 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Puan Durumu | Pozitif Lig",
   description: "Pozitif Lig Kuzey ve Güney Ligi güncel puan durumu ve maç sonuçları.",
+};
+
+const COLUMN_TITLES: Record<"kuzey" | "guney-a" | "guney-b", string> = {
+  kuzey: "Kuzey Ligi",
+  "guney-a": "Güney Ligi — Grup A",
+  "guney-b": "Güney Ligi — Grup B",
 };
 
 function playoffToMatch(p: PlayoffMatch, league: string, idx: number): Match {
@@ -36,6 +43,41 @@ function playoffToMatch(p: PlayoffMatch, league: string, idx: number): Match {
   };
 }
 
+function StandingsColumn({
+  columnKey,
+  standingsSections,
+  matches,
+}: {
+  columnKey: "kuzey" | "guney-a" | "guney-b";
+  standingsSections: StandingsSection[] | null;
+  matches: Match[];
+}) {
+  const nativeSection = standingsSections?.find((s) => s.group === columnKey);
+  const widget = standingsWidgets.find((w) => w.group === columnKey);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h3 className="mb-3 text-lg font-bold text-accent">{COLUMN_TITLES[columnKey]}</h3>
+        {nativeSection ? <StandingsTable rows={nativeSection.rows} /> : widget ? <StandingsWidget {...widget} /> : null}
+      </div>
+
+      {matches.length > 0 && (
+        <div>
+          <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            Maç Sonuçları
+          </h4>
+          <div className="flex flex-col gap-4">
+            {matches.map((m) => (
+              <MatchResultCard key={m.id} match={m} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function PuanDurumuPage() {
   const [kuzeyMatches, guneyGroups, kuzeyPlayoff, guneyPlayoff, standingsSections] =
     await Promise.all([
@@ -46,69 +88,60 @@ export default async function PuanDurumuPage() {
       getStandingsSections(),
     ]);
 
-  const groups: { title: string; matches: Match[] }[] = [
-    { title: "Kuzey Ligi", matches: kuzeyMatches },
-    { title: "Güney Ligi — Grup A", matches: guneyGroups.groupA },
-    { title: "Güney Ligi — Grup B", matches: guneyGroups.groupB },
-    { title: "Güney Ligi", matches: guneyGroups.ungrouped },
-    {
-      title: "Kuzey Ligi Play-Off",
-      matches: kuzeyPlayoff.map((p, idx) => playoffToMatch(p, "Kuzey Ligi Play-Off", idx)),
-    },
-  ];
-
-  if (guneyPlayoff && guneyPlayoff.length > 0) {
-    groups.push({
-      title: "Güney Ligi Play-Off",
-      matches: guneyPlayoff.map((p, idx) => playoffToMatch(p, "Güney Ligi Play-Off", idx)),
-    });
-  }
+  const kuzeyPlayoffMatches = kuzeyPlayoff.map((p, idx) =>
+    playoffToMatch(p, "Kuzey Ligi Play-Off", idx),
+  );
+  const guneyPlayoffMatches = (guneyPlayoff ?? []).map((p, idx) =>
+    playoffToMatch(p, "Güney Ligi Play-Off", idx),
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <SectionHeading
         eyebrow="2025/26 Sezonu"
         title="Puan Durumu"
-        description="Puan durumları Sofascore üzerinden anlık olarak güncellenir."
+        description="Puan durumları ve maç sonuçları Sofascore üzerinden anlık olarak güncellenir."
       />
-      {standingsSections ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {standingsSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="mb-3 text-lg font-bold text-accent">{section.title}</h3>
-              <StandingsTable rows={section.rows} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {standingsWidgets.map((w) => (
-            <StandingsWidget key={w.id} {...w} />
-          ))}
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        <StandingsColumn
+          columnKey="kuzey"
+          standingsSections={standingsSections}
+          matches={[...kuzeyMatches, ...kuzeyPlayoffMatches]}
+        />
+        <StandingsColumn
+          columnKey="guney-a"
+          standingsSections={standingsSections}
+          matches={guneyGroups.groupA}
+        />
+        <StandingsColumn
+          columnKey="guney-b"
+          standingsSections={standingsSections}
+          matches={guneyGroups.groupB}
+        />
+      </div>
+
+      {guneyPlayoffMatches.length > 0 && (
+        <div className="mt-12">
+          <h3 className="mb-4 text-lg font-bold text-accent">Güney Ligi Play-Off</h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {guneyPlayoffMatches.map((m) => (
+              <MatchResultCard key={m.id} match={m} />
+            ))}
+          </div>
         </div>
       )}
 
-      <div className="mt-14">
-        <SectionHeading
-          eyebrow="2025/26 Sezonu"
-          title="Maç Sonuçları"
-          description="Lig aşaması ve play-off sonuçları Sofascore üzerinden canlı olarak güncellenir."
-        />
-        <div className="flex flex-col gap-10">
-          {groups
-            .filter((g) => g.matches.length > 0)
-            .map((group) => (
-              <div key={group.title}>
-                <h3 className="mb-4 text-lg font-bold text-accent">{group.title}</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {group.matches.map((m) => (
-                    <MatchResultCard key={m.id} match={m} />
-                  ))}
-                </div>
-              </div>
+      {guneyGroups.ungrouped.length > 0 && (
+        <div className="mt-12">
+          <h3 className="mb-4 text-lg font-bold text-accent">Güney Ligi</h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {guneyGroups.ungrouped.map((m) => (
+              <MatchResultCard key={m.id} match={m} />
             ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
