@@ -179,19 +179,27 @@ export const teams: string[] = [
 
 export const standingsWidgets = [
   {
-    id: "sofa-standings-embed-176335-98003",
-    title: "Pozitiflig Güney, Grup B 2026",
-    src: "https://widgets.sofascore.com/tr/embed/tournament/176335/season/98003/standings/Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026?widgetTitle=Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026&showCompetitionLogo=true",
-    sofascoreUrl:
-      "https://www.sofascore.com/tr/football/tournament/turkey-amateur/pozitiflig-guney-group-b/27221#id:98003",
-    height: 923,
-  },
-  {
     id: "sofa-standings-embed-181845-93435",
     title: "Pozitiflig Kuzey 2026",
     src: "https://widgets.sofascore.com/tr/embed/tournament/181845/season/93435/standings/Round%20robin%202026?widgetTitle=Round%20robin%202026&showCompetitionLogo=true",
     sofascoreUrl:
       "https://www.sofascore.com/tr/football/tournament/turkey-amateur/round-robin/34326#id:93435",
     height: 723,
+  },
+  {
+    id: "sofa-standings-embed-154654-98003",
+    title: "Pozitiflig Güney, Grup A 2026",
+    src: "https://widgets.sofascore.com/tr/embed/tournament/154654/season/98003/standings/Pozitiflig%20G%C3%BCney%2C%20Group%20A%202026?widgetTitle=Pozitiflig%20G%C3%BCney%2C%20Group%20A%202026&showCompetitionLogo=true",
+    sofascoreUrl:
+      "https://www.sofascore.com/tr/football/tournament/turkey-amateur/pozitiflig-guney-first-stage/27221#id:98003",
+    height: 923,
+  },
+  {
+    id: "sofa-standings-embed-176335-98003",
+    title: "Pozitiflig Güney, Grup B 2026",
+    src: "https://widgets.sofascore.com/tr/embed/tournament/176335/season/98003/standings/Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026?widgetTitle=Pozitiflig%20G%C3%BCney%2C%20Group%20B%202026&showCompetitionLogo=true",
+    sofascoreUrl:
+      "https://www.sofascore.com/tr/football/tournament/turkey-amateur/pozitiflig-guney-group-b/27221#id:98003",
+    height: 923,
   },
 ];
